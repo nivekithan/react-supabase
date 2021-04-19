@@ -1,0 +1,1 @@
+export { PostgrestClient } from "./postgrestClient";
