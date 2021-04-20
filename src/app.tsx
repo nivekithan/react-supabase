@@ -29,7 +29,7 @@ export const App = () => {
 
   return (
     <div>
-      <p>Start of Supabase mangement</p>
+      <p>Start of Supabase management</p>
       <button onClick={onClick}>toggle children</button>
       {showChildren ? <Component /> : null}
     </div>

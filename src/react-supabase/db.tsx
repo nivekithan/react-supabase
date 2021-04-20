@@ -5,6 +5,7 @@ import { Key } from "./key";
 import { fetch } from "cross-fetch";
 import { useEffect, useRef, useState } from "react";
 import { stableStringify } from "./utlis";
+import { Cache } from "./cache";
 
 type DbContext<props> = {
   createUrl: (supabase: PostgrestClient, para?: props) => SupabaseBuild;
@@ -20,8 +21,8 @@ export function db<props>(
   };
 }
 
-type useDbResult<Data> = {
-  state: "LOADING" | "ERROR" | "SUCCESS";
+export type DbResult<Data> = {
+  state: "LOADING" | "ERROR" | "SUCCESS" | "STALE";
   data: Data | undefined;
   error: Error | undefined;
 };
@@ -30,28 +31,30 @@ export const useDb = <data, props>(db: DbContext<props>, args?: props) => {
   const supabase = useSupabase();
   const { current: subaseBuild } = useRef(db.createUrl(supabase, args));
   const hash = `${db.id}${stableStringify(args)}`;
+  const cache = () => {
+    return Cache.getCache<data>(hash);
+  };
 
-  const isAvailableInHash = typeof queryCache[hash] !== "undefined";
+  const [resultData, setResultData] = useState<DbResult<data>>(cache);
 
-  const [resultData, setResultData] = useState<useDbResult<data>>(
-    isAvailableInHash
-      ? (queryCache[hash] as useDbResult<data>)
-      : {
+  useEffect(() => {
+    let isMounted = true;
+    if (cache().state === "STALE") {
+      console.log("Sending request");
+
+      (async () => {
+        Cache.setCache(hash, {
           state: "LOADING",
           data: undefined,
           error: undefined,
-        }
-  );
-
-  useEffect(() => {
-    if (!isAvailableInHash) {
-      (async () => {
+        });
+        isMounted && setResultData(cache());
         const result = await fetch(subaseBuild.url.toString(), {
           headers: subaseBuild.headers,
           method: subaseBuild.method,
         });
 
-        let dbResult: useDbResult<data>;
+        let dbResult: DbResult<data>;
         if (result.ok) {
           dbResult = {
             state: "SUCCESS",
@@ -65,9 +68,13 @@ export const useDb = <data, props>(db: DbContext<props>, args?: props) => {
             error: await result.json(),
           };
         }
-        queryCache[hash] = dbResult;
-        setResultData(dbResult);
+        Cache.setCache(hash, dbResult);
+        isMounted && setResultData(cache());
       })();
+
+      return () => {
+        isMounted = false;
+      };
     }
   }, [subaseBuild]);
 
@@ -75,7 +82,5 @@ export const useDb = <data, props>(db: DbContext<props>, args?: props) => {
 };
 
 type QueryCache = {
-  [hash: string]: useDbResult<unknown>;
+  [hash: string]: DbResult<unknown>;
 };
-
-const queryCache: QueryCache = {};
