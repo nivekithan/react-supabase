@@ -1,42 +1,51 @@
-import React, { useEffect } from "react";
-import { PostgrestClient } from "./postgrest";
+import React, { useState } from "react";
+import { db, useDb } from "./react-supabase/db";
 
-export const App = () => {
-  useEffect(() => {
-    fetchUsersData();
-  });
-
-  return <div>Start of Supabase state management</div>;
-};
-
-const fetchUsersData = async () => {
-  const supabase = new PostgrestClient(
-    `${import.meta.env.VITE_DB_URL as string}/rest/v1`,
-    {
-      apiKey: import.meta.env.VITE_DB_KEY as string,
-      Authorization: `Bearer ${import.meta.env.VITE_DB_KEY as string}`,
-    }
-  );
-  const { url, headers, method } = supabase
+const userData = db<never>((supabase) => {
+  return supabase
     .from("users")
     .select("*")
     .lt("id", 3)
     .order("id", { ascending: false })
     .get();
+});
 
-  const result = await fetch(url, {
-    method,
-    headers: headers,
-  });
+export const App = () => {
+  const userDataRes = useDb(userData);
+  const [showChildren, setShowChildren] = useState(false);
 
-  if (result.ok) {
-    const text = await result.text();
-    let data;
-    if (text && text !== "") {
-      data = JSON.parse(text);
-    }
-    console.log(data);
+  const onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    setShowChildren((s) => !s);
+  };
+
+  if (userDataRes.state === "LOADING") {
+    console.log(1, "Loading");
+  } else if (userDataRes.state === "ERROR") {
+    console.log(1, "Error", userDataRes.error);
   } else {
-    console.warn(await result.json());
+    console.log(1, userDataRes.state, userDataRes.data);
   }
+
+  return (
+    <div>
+      <p>Start of Supabase mangement</p>
+      <button onClick={onClick}>toggle children</button>
+      {showChildren ? <Component /> : null}
+    </div>
+  );
+};
+
+const Component = () => {
+  const userDataRes = useDb(userData);
+
+  if (userDataRes.state === "LOADING") {
+    console.log(2, "Loading");
+  } else if (userDataRes.state === "ERROR") {
+    console.log(2, "Error", userDataRes.error);
+  } else {
+    console.log(2, userDataRes.state, userDataRes.data);
+  }
+
+  return <div>Children !</div>;
 };

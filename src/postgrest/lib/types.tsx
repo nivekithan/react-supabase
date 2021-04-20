@@ -2,6 +2,12 @@ export type Headers = {
   [key: string]: string;
 };
 
+export type SupabaseBuild = {
+  method: "GET" | "HEAD" | "POST" | "PATCH" | "DELETE";
+  url: URL;
+  headers: Headers;
+};
+
 export abstract class PostgrestBuilder<T> {
   protected method!: "GET" | "HEAD" | "POST" | "PATCH" | "DELETE";
   protected url!: URL;
@@ -12,7 +18,7 @@ export abstract class PostgrestBuilder<T> {
     Object.assign(this, builder);
   }
 
-  get() {
+  get(): SupabaseBuild {
     if (typeof this.schema === "undefined") {
       // skip
     } else if (["GET", "HEAD"].includes(this.method)) {
@@ -26,9 +32,8 @@ export abstract class PostgrestBuilder<T> {
 
     return {
       method: this.method,
-      url: this.url.toString(),
+      url: this.url,
       headers: this.headers,
-      schema: this.schema,
     };
   }
 }
