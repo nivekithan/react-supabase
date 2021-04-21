@@ -59,7 +59,7 @@ export const useDb = <data, props>(db: DbContext<props>, args: props) => {
       isMounted = false;
       unSubscribe();
     };
-  }, [supabaseBuild, hash, setResultData, cacheTime]);
+  }, [supabaseBuild, hash, setResultData, cacheTime, key]);
 
   /**
    * SetInterval delays the execution functions by the specified time so
@@ -67,16 +67,13 @@ export const useDb = <data, props>(db: DbContext<props>, args: props) => {
    */
 
   useEffect(() => {
-    let isMounted = true;
     const cache = Cache.getCache(hash);
 
     if (cache.state === "STALE") {
       fetchData(hash, supabaseBuild);
     }
 
-    return () => {
-      isMounted = false;
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return resultData;
