@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { db, useDb } from "./react-supabase/db";
 
-const userData = db<{ users: string }>((supabase, arg) => {
+const userData = db<{ users: string }>((supabase) => {
   return supabase
     .from("users")
     .select("*")
@@ -12,7 +12,7 @@ const userData = db<{ users: string }>((supabase, arg) => {
 
 export const App = () => {
   const userDataRes = useDb(userData, { users: "users" });
-  const [showChildren, setShowChildren] = useState(true);
+  const [showChildren, setShowChildren] = useState(false);
 
   const onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
