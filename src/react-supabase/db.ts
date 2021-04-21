@@ -2,10 +2,9 @@ import { PostgrestClient } from "../postgrest";
 import { SupabaseBuild } from "../postgrest/lib/types";
 import { useSupabase, useSupabaseOptions } from "./context";
 import { Key } from "./key";
-import { fetch } from "cross-fetch";
 import { useEffect, useRef, useState } from "react";
 import { stableStringify } from "./utlis";
-import { Cache } from "./cache";
+import { Cache, fetchData } from "./cache";
 
 type DbContext<props> = {
   createUrl: (supabase: PostgrestClient, para: props) => SupabaseBuild;
@@ -17,7 +16,7 @@ export const db = <props>(
 ): DbContext<props> => {
   return {
     createUrl,
-    id: new Key(),
+    id: Key.getUniqueKey(),
   };
 };
 
@@ -33,6 +32,8 @@ export const useDb = <data, props>(db: DbContext<props>, args: props) => {
 
   const { current: supabaseBuild } = useRef(db.createUrl(supabase, args));
   const hash = `${db.id}${stableStringify(args)}`;
+  const { current: key } = useRef(Key.getUniqueKey());
+
   const cache = () => {
     return Cache.getCache<data>(hash);
   };
@@ -42,23 +43,21 @@ export const useDb = <data, props>(db: DbContext<props>, args: props) => {
   useEffect(() => {
     let isMounted = true;
 
-    const clearIntervalToken = setInterval(() => {
-      Cache.setCache(hash, {
-        state: "STALE",
-        data: undefined,
-        error: undefined,
-      });
-      setResultData({
-        state: "STALE",
-        data: undefined,
-        error: undefined,
-      });
-      fetchData(supabaseBuild, hash, setResultData, () => isMounted);
-    }, cacheTime);
+    const unSubscribe = Cache.subscribe<data>(
+      hash,
+      (cache) => {
+        isMounted && setResultData(cache);
+      },
+      supabaseBuild,
+      {
+        interval: cacheTime,
+        unique: key,
+      }
+    );
 
     return () => {
       isMounted = false;
-      clearInterval(clearIntervalToken);
+      unSubscribe();
     };
   }, [supabaseBuild, hash, setResultData, cacheTime]);
 
@@ -69,8 +68,11 @@ export const useDb = <data, props>(db: DbContext<props>, args: props) => {
 
   useEffect(() => {
     let isMounted = true;
+    const cache = Cache.getCache(hash);
 
-    fetchData(supabaseBuild, hash, setResultData, () => isMounted);
+    if (cache.state === "STALE") {
+      fetchData(hash, supabaseBuild);
+    }
 
     return () => {
       isMounted = false;
@@ -78,47 +80,4 @@ export const useDb = <data, props>(db: DbContext<props>, args: props) => {
   }, []);
 
   return resultData;
-};
-
-const fetchData = <data>(
-  supabaseBuild: SupabaseBuild,
-  hash: string,
-  setData: (data: DbResult<data>) => void,
-  isMounted: () => boolean
-) => {
-  const cache = () => {
-    return Cache.getCache<data>(hash);
-  };
-
-  if (cache().state === "STALE") {
-    (async () => {
-      Cache.setCache(hash, {
-        state: "LOADING",
-        data: undefined,
-        error: undefined,
-      });
-      isMounted() && setData(cache());
-      const result = await fetch(supabaseBuild.url.toString(), {
-        headers: supabaseBuild.headers,
-        method: supabaseBuild.method,
-      });
-
-      let dbResult: DbResult<data>;
-      if (result.ok) {
-        dbResult = {
-          state: "SUCCESS",
-          data: JSON.parse(await result.text()),
-          error: undefined,
-        };
-      } else {
-        dbResult = {
-          state: "ERROR",
-          data: undefined,
-          error: await result.json(),
-        };
-      }
-      Cache.setCache(hash, dbResult);
-      isMounted() && setData(cache());
-    })();
-  }
 };

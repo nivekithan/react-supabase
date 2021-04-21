@@ -26,7 +26,7 @@ export const SupabaseProvider = ({
   config,
   options = {},
 }: SupabaseProviderProps) => {
-  const { cacheTime = 3000 } = options;
+  const { cacheTime = 300000 } = options;
   const [supabaseOptions] = useState<SupabaseOptions>({
     cacheTime,
   });
