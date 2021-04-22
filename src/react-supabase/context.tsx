@@ -15,7 +15,7 @@ const supabaseOptionsContext = React.createContext<SupabaseOptions | undefined>(
   undefined
 );
 
-type SupabaseProviderProps = {
+export type SupabaseProviderProps = {
   config: SupabaseConfig;
   children: React.ReactNode;
   options: Partial<SupabaseOptions>;
@@ -26,7 +26,7 @@ export const SupabaseProvider = ({
   config,
   options = {},
 }: SupabaseProviderProps) => {
-  const { cacheTime = 300000 } = options;
+  const { cacheTime = 30000000 } = options;
   const [supabaseOptions] = useState<SupabaseOptions>({
     cacheTime,
   });
