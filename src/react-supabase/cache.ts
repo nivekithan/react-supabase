@@ -75,8 +75,27 @@ export class Cache {
       };
     }
     return () => {
-      delete Cache.cache[hash].subscribers[options.unique];
+      /**
+       * In some case (cache.reset()) the cache might get deleted in those
+       * cases Cache.cache[hash] wil resolve to undefined.
+       *
+       * That will lead to typeError
+       *
+       * Error: Uncaught [TypeError: Cannot read property 'subscribers' of undefined]
+       *
+       * Thats why optional chaining
+       */
+
+      delete Cache.cache[hash]?.subscribers[options.unique];
     };
+  }
+
+  static reset() {
+    Object.values(Cache.cache).forEach((cache) => {
+      cache.stopFetching();
+    });
+
+    Cache.cache = {};
   }
 }
 

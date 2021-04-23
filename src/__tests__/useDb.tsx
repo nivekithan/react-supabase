@@ -3,76 +3,96 @@
  */
 
 import { db, useDb } from "@src/react-supabase/db";
-import {
-  SupabaseProvider,
-  SupabaseProviderProps,
-} from "@src/react-supabase/context";
-import { renderHook, WrapperComponent } from "@testing-library/react-hooks";
+import { renderHook } from "@testing-library/react-hooks";
 import React from "react";
-import { rest } from "msw";
-import { setupServer } from "msw/node";
-import { KEY, URL } from "./constants";
-
-const handlers = [
-  rest.get(new RegExp(`${URL}/rest/v1`), (req, res, ctx) => {
-    return res(ctx.text('"THis is great"'), ctx.status(200));
-  }),
-];
-
-const server = setupServer(...handlers);
+import { KEY, url, Wrapper, server, successResult, errorResult } from "./utils";
+import { Cache } from "@src/react-supabase/cache";
+import { Key } from "@src/react-supabase/key";
 
 beforeAll(() => server.listen());
 
 afterEach(() => {
+  Cache.reset();
+  Key.reset();
   server.resetHandlers();
 });
 
 afterAll(() => server.close());
 
 describe("Testing useDb custom hook", () => {
-  test("Demo tests", async () => {
+  test("Request is success", async () => {
     const dbAtom = db((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
-    const wrapper: WrapperComponent<SupabaseProviderProps> = ({
-      children,
-      config,
-      options,
-    }) => {
-      return (
-        <SupabaseProvider config={config} options={options}>
-          {children}
-        </SupabaseProvider>
-      );
-    };
-
-    const { result, waitFor, waitForNextUpdate } = renderHook(
+    const { result, waitForNextUpdate } = renderHook(
       () => useDb(dbAtom, undefined),
       {
-        wrapper: ({ children }) =>
-          wrapper({
-            children,
-            config: { key: KEY, url: URL },
-            options: { cacheTime: 3000 },
-          }),
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              config={{ key: KEY, url: url.success }}
+              options={{ cacheTime: 30000 }}
+            >
+              {children}
+            </Wrapper>
+          );
+        },
       }
     );
 
-    await waitFor(() => {
-      return expect(result.current.state === "LOADING").toBe(true);
-    });
-
-    expect(result.all).toHaveLength(2);
-
-    if (!["ERROR", "SUCCESS"].includes(result.current.state)) {
+    if (result.current.state !== "LOADING") {
+      expect(result.all).toHaveLength(3);
+      expect(result.current.state).toBe("SUCCESS");
+      expect(result.current.data).toBe(successResult);
+      expect(result.current.error).toBeUndefined();
+    } else {
+      expect(result.all).toHaveLength(2);
       await waitForNextUpdate({
         timeout: 3000,
       });
+      expect(result.current.state).toBe("SUCCESS");
+      expect(result.current.data).toBe(successResult);
+      expect(result.current.error).toBeUndefined();
     }
+  });
 
-    const isValidState = ["ERROR", "SUCCESS"].includes(result.current.state);
+  test("Request is not success", async () => {
+    const dbAtom = db((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
 
-    expect(isValidState).toBeTruthy();
+    const { result, waitForNextUpdate } = renderHook(
+      () => useDb(dbAtom, undefined),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              config={{ key: KEY, url: url.error }}
+              options={{ cacheTime: 30000 }}
+            >
+              {children}
+            </Wrapper>
+          );
+        },
+      }
+    );
+
+    if (result.current.state !== "LOADING") {
+      expect(result.all).toHaveLength(3);
+      expect(result.current.state).toBe("ERROR");
+      expect(result.current.error).toBe(errorResult);
+      expect(result.current.data).toBeUndefined();
+    } else {
+      expect(result.all).toHaveLength(2);
+      await waitForNextUpdate({
+        timeout: 3000,
+      });
+      expect(result.current.state).toBe("ERROR");
+      expect(result.current.error).toBe(errorResult);
+      expect(result.current.data).toBeUndefined();
+    }
   });
 });

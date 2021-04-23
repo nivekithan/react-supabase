@@ -5,4 +5,8 @@ export class Key {
     i++;
     return `${i}`;
   }
+
+  static reset() {
+    i = 0;
+  }
 }
