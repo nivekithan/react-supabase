@@ -29,7 +29,7 @@ export class Cache {
 
   static setCache<T>(hash: string, value: DbResult<T>): DbResult<T> {
     if (!Cache.cache[hash]) {
-      throw new Error("There is no cache with the hash value " + { hash });
+      throw new Error("There is no cache with the hash value " + hash);
     } else {
       Cache.cache[hash].result = value;
       Object.values(Cache.cache[hash].subscribers).forEach((doOnChange) => {
