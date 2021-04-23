@@ -29,7 +29,7 @@ export class Cache {
 
   static setCache<T>(hash: string, value: DbResult<T>): DbResult<T> {
     if (!Cache.cache[hash]) {
-      throw new Error("There is no cache with the hash value " + { hash });
+      throw new Error("There is no cache with the hash value " + hash);
     } else {
       Cache.cache[hash].result = value;
       Object.values(Cache.cache[hash].subscribers).forEach((doOnChange) => {
@@ -48,7 +48,7 @@ export class Cache {
       interval: number;
     }
   ) {
-    let timeToken: number;
+    let timeToken: NodeJS.Timeout;
     if (Cache.cache[hash]) {
       callOnChange(Cache.getCache(hash));
       Cache.cache[hash].subscribers = {
@@ -75,8 +75,27 @@ export class Cache {
       };
     }
     return () => {
-      delete Cache.cache[hash].subscribers[options.unique];
+      /**
+       * In some case (cache.reset()) the cache might get deleted in those
+       * cases Cache.cache[hash] wil resolve to undefined.
+       *
+       * That will lead to typeError
+       *
+       * Error: Uncaught [TypeError: Cannot read property 'subscribers' of undefined]
+       *
+       * Thats why optional chaining
+       */
+
+      delete Cache.cache[hash]?.subscribers[options.unique];
     };
+  }
+
+  static reset() {
+    Object.values(Cache.cache).forEach((cache) => {
+      cache.stopFetching();
+    });
+
+    Cache.cache = {};
   }
 }
 
