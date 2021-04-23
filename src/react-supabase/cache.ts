@@ -48,7 +48,7 @@ export class Cache {
       interval: number;
     }
   ) {
-    let timeToken: number;
+    let timeToken: NodeJS.Timeout;
     if (Cache.cache[hash]) {
       callOnChange(Cache.getCache(hash));
       Cache.cache[hash].subscribers = {
