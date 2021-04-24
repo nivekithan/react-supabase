@@ -9,14 +9,21 @@ import { Cache, fetchData } from "./cache";
 type DbContext<props> = {
   createUrl: (supabase: PostgrestClient, para: props) => SupabaseBuild;
   id: Key;
+  options: dbOptions;
+};
+
+type dbOptions = {
+  backgroundFetch?: boolean;
 };
 
 export const db = <props>(
-  createUrl: (supabase: PostgrestClient, para: props) => SupabaseBuild
+  createUrl: (supabase: PostgrestClient, para: props) => SupabaseBuild,
+  options: dbOptions = {}
 ): DbContext<props> => {
   return {
     createUrl,
     id: Key.getUniqueKey(),
+    options,
   };
 };
 
@@ -26,9 +33,23 @@ export type DbResult<Data> = {
   error: Error | undefined;
 };
 
-export const useDb = <data, props>(db: DbContext<props>, args: props) => {
+export const useDb = <data, props>(
+  db: DbContext<props>,
+  args: props,
+  options: dbOptions = {}
+) => {
+  let bgFetch: boolean;
+
   const supabase = useSupabase();
-  const { cacheTime } = useSupabaseOptions();
+  const { cacheTime, backgroundFetch } = useSupabaseOptions();
+
+  if (options.backgroundFetch !== undefined) {
+    bgFetch = options.backgroundFetch;
+  } else if (db.options.backgroundFetch !== undefined) {
+    bgFetch = db.options.backgroundFetch;
+  } else {
+    bgFetch = backgroundFetch;
+  }
 
   const { current: supabaseBuild } = useRef(db.createUrl(supabase, args));
   const hash = `${db.id}${stableStringify(args)}`;
@@ -38,7 +59,7 @@ export const useDb = <data, props>(db: DbContext<props>, args: props) => {
     return Cache.getCache<data>(hash);
   };
 
-  const [resultData, setResultData] = useState<DbResult<data>>(cache);
+  const [resultData, setResultData] = useState<DbResult<data>>(cache());
 
   useEffect(() => {
     let isMounted = true;
@@ -52,6 +73,7 @@ export const useDb = <data, props>(db: DbContext<props>, args: props) => {
       {
         interval: cacheTime,
         unique: key,
+        backgroundFetch: bgFetch,
       }
     );
 
@@ -59,7 +81,7 @@ export const useDb = <data, props>(db: DbContext<props>, args: props) => {
       isMounted = false;
       unSubscribe();
     };
-  }, [supabaseBuild, hash, setResultData, cacheTime, key]);
+  }, [supabaseBuild, hash, setResultData, cacheTime, key, bgFetch]);
 
   /**
    * SetInterval delays the execution functions by the specified time so

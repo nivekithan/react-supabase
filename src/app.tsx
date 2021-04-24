@@ -24,7 +24,7 @@ export const App = () => {
   } else if (userDataRes.state === "ERROR") {
     console.log(1, "Error", userDataRes.error);
   } else {
-    console.log(1, userDataRes.state, userDataRes.data);
+    console.log(1, userDataRes.state, userDataRes.data, userDataRes.error);
   }
 
   return (
