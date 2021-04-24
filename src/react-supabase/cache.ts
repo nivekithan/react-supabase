@@ -10,6 +10,10 @@ type CacheHash = {
   stopFetching: () => void;
 };
 
+type SetCacheOptions = {
+  backgroundFetch?: boolean;
+};
+
 export class Cache {
   private static cache: {
     [hash: string]: CacheHash;
@@ -27,14 +31,23 @@ export class Cache {
     }
   }
 
-  static setCache<T>(hash: string, value: DbResult<T>): DbResult<T> {
+  static setCache<T>(
+    hash: string,
+    value: DbResult<T>,
+    options: SetCacheOptions = {}
+  ): DbResult<T> {
     if (!Cache.cache[hash]) {
       throw new Error("There is no cache with the hash value " + hash);
     } else {
+      const { backgroundFetch = false } = options;
+
       Cache.cache[hash].result = value;
-      Object.values(Cache.cache[hash].subscribers).forEach((doOnChange) => {
-        doOnChange(value);
-      });
+
+      if (!backgroundFetch || ["SUCCESS", "ERROR"].includes(value.state)) {
+        Object.values(Cache.cache[hash].subscribers).forEach((doOnChange) => {
+          doOnChange(value);
+        });
+      }
       return Cache.cache[hash].result as DbResult<T>;
     }
   }
@@ -46,19 +59,22 @@ export class Cache {
     options: {
       unique: string;
       interval: number;
+      backgroundFetch: boolean;
     }
   ) {
     let timeToken: NodeJS.Timeout;
     if (Cache.cache[hash]) {
       callOnChange(Cache.getCache(hash));
+
       Cache.cache[hash].subscribers = {
         ...Cache.cache[hash].subscribers,
         [options.unique]: callOnChange as (cache: DbResult<unknown>) => void,
       };
     } else {
+      const { interval, unique, backgroundFetch } = options;
       Cache.cache[hash] = {
         subscribers: {
-          [options.unique]: callOnChange as (cache: DbResult<unknown>) => void,
+          [unique]: callOnChange as (cache: DbResult<unknown>) => void,
         },
       } as CacheHash;
 
@@ -68,7 +84,10 @@ export class Cache {
         state: "STALE",
       });
 
-      timeToken = fetchDataWithInterval(hash, supabaseBuild, options.interval);
+      timeToken = fetchDataWithInterval(hash, supabaseBuild, {
+        interval,
+        backgroundFetch,
+      });
 
       Cache.cache[hash].stopFetching = () => {
         clearInterval(timeToken);
@@ -99,35 +118,63 @@ export class Cache {
   }
 }
 
+type FetchDataIntervalOptions = {
+  interval: number;
+  backgroundFetch?: boolean;
+};
+
 const fetchDataWithInterval = (
   hash: string,
   supabaseBuild: SupabaseBuild,
-  interval: number
+  options: FetchDataIntervalOptions
 ) => {
+  const { interval, backgroundFetch } = options;
   const cache = () => {
     return Cache.getCache<unknown>(hash);
   };
 
   const timeToken = setInterval(() => {
-    Cache.setCache(hash, {
-      data: undefined,
-      error: undefined,
-      state: "STALE",
-    });
+    Cache.setCache(
+      hash,
+      {
+        data: undefined,
+        error: undefined,
+        state: "STALE",
+      },
+      {
+        backgroundFetch,
+      }
+    );
     if (cache().state === "STALE") {
-      fetchData(hash, supabaseBuild);
+      fetchData(hash, supabaseBuild, { backgroundFetch });
     }
   }, interval);
 
   return timeToken;
 };
 
-export const fetchData = async (hash: string, supabaseBuild: SupabaseBuild) => {
-  Cache.setCache(hash, {
-    state: "LOADING",
-    data: undefined,
-    error: undefined,
-  });
+type FetchDataOptions = {
+  backgroundFetch?: boolean;
+};
+
+export const fetchData = async (
+  hash: string,
+  supabaseBuild: SupabaseBuild,
+  options: FetchDataOptions = {}
+) => {
+  const { backgroundFetch } = options;
+  Cache.setCache(
+    hash,
+    {
+      state: "LOADING",
+      data: undefined,
+      error: undefined,
+    },
+    {
+      backgroundFetch,
+    }
+  );
+
   const result = await fetch(supabaseBuild.url.toString(), {
     headers: supabaseBuild.headers,
     method: supabaseBuild.method,
@@ -147,5 +194,7 @@ export const fetchData = async (hash: string, supabaseBuild: SupabaseBuild) => {
       error: await result.json(),
     };
   }
-  Cache.setCache(hash, dbResult);
+  Cache.setCache(hash, dbResult, {
+    backgroundFetch,
+  });
 };

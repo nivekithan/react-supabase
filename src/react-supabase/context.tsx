@@ -8,6 +8,7 @@ export type SupabaseConfig = {
 
 export type SupabaseOptions = {
   cacheTime: number;
+  backgroundFetch: boolean;
 };
 
 const supabase = React.createContext<PostgrestClient | undefined>(undefined);
@@ -18,7 +19,7 @@ const supabaseOptionsContext = React.createContext<SupabaseOptions | undefined>(
 export type SupabaseProviderProps = {
   config: SupabaseConfig;
   children: React.ReactNode;
-  options: Partial<SupabaseOptions>;
+  options?: Partial<SupabaseOptions>;
 };
 
 export const SupabaseProvider = ({
@@ -26,9 +27,10 @@ export const SupabaseProvider = ({
   config,
   options = {},
 }: SupabaseProviderProps) => {
-  const { cacheTime = 30000000 } = options;
+  const { cacheTime = 30_000_000, backgroundFetch = true } = options;
   const [supabaseOptions] = useState<SupabaseOptions>({
     cacheTime,
+    backgroundFetch,
   });
   const [supabaseClient, setSupabaseClient] = useState(
     new PostgrestClient(`${config.url}/rest/v1`, {
