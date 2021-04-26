@@ -56,7 +56,15 @@ export const useDb = <data, props>(
   const { current: key } = useRef(Key.getUniqueKey());
 
   const cache = () => {
-    return Cache.getCache<data>(hash);
+    try {
+      return Cache.getCache<data>(hash);
+    } catch (err) {
+      return {
+        data: undefined,
+        error: undefined,
+        state: "STALE",
+      } as DbResult<data>;
+    }
   };
 
   const [resultData, setResultData] = useState<DbResult<data>>(cache());
