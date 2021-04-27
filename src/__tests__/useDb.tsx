@@ -16,6 +16,7 @@ import {
 } from "./utils";
 import { Cache } from "@src/react-supabase/cache";
 import { Key } from "@src/react-supabase/key";
+import { createClient } from "@src/react-supabase/context";
 
 beforeAll(() => server.listen());
 
@@ -27,6 +28,16 @@ afterEach(() => {
 });
 
 afterAll(() => server.close());
+
+const successClient = createClient({
+  url: url.success,
+  key: KEY,
+});
+
+const errorClient = createClient({
+  url: url.error,
+  key: KEY,
+});
 
 describe("Flow of requests", () => {
   test("Success: Request is success", async () => {
@@ -40,10 +51,7 @@ describe("Flow of requests", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              config={{ key: KEY, url: url.success }}
-              options={{ cacheTime: 300000 }}
-            >
+            <Wrapper client={successClient} options={{ cacheTime: 300000 }}>
               {children}
             </Wrapper>
           );
@@ -77,10 +85,7 @@ describe("Flow of requests", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              config={{ key: KEY, url: url.error }}
-              options={{ cacheTime: 300000 }}
-            >
+            <Wrapper client={errorClient} options={{ cacheTime: 300000 }}>
               {children}
             </Wrapper>
           );
@@ -105,6 +110,298 @@ describe("Flow of requests", () => {
   });
 });
 
+describe("Supabase options", () => {
+  test.skip(
+    "Success: Behavior of default supabaseOptions",
+    async () => {
+      const dbAtom = db((supabase) => {
+        return supabase.from("users").select("name").get();
+      });
+
+      const { result, waitFor, waitForNextUpdate } = renderHook(
+        () => useDb(dbAtom, undefined),
+        {
+          // eslint-disable-next-line react/prop-types, react/display-name
+          wrapper: ({ children }) => {
+            return <Wrapper client={successClient}>{children}</Wrapper>;
+          },
+        }
+      );
+
+      await waitFor(() => {
+        return result.current.state === "SUCCESS";
+      });
+
+      const stateChanges = result.all.length;
+
+      await waitForNextUpdate({
+        timeout: 3000 * 60 + 250,
+      });
+
+      expect(result.current.state).toBe("SUCCESS");
+      expect(result.all.length).toBe(stateChanges + 1);
+    },
+    3000 * 60 + 250 + 5000
+  );
+  test.skip(
+    "Error: Behavior of default supabaseOptions",
+    async () => {
+      const dbAtom = db((supabase) => {
+        return supabase.from("users").select("name").get();
+      });
+
+      const { result, waitFor, waitForNextUpdate } = renderHook(
+        () => useDb(dbAtom, undefined),
+        {
+          // eslint-disable-next-line react/prop-types, react/display-name
+          wrapper: ({ children }) => {
+            return <Wrapper client={errorClient}>{children}</Wrapper>;
+          },
+        }
+      );
+
+      await waitFor(() => {
+        return result.current.state === "ERROR";
+      });
+
+      const stateChanges = result.all.length;
+
+      await waitForNextUpdate({
+        timeout: 3000 * 60 + 250,
+      });
+
+      expect(result.current.state).toBe("ERROR");
+      expect(result.all.length).toBe(stateChanges + 1);
+    },
+    3000 * 60 + 250 + 5000
+  );
+
+  test("Success: Options provided in Context should overwrite the default Config", async () => {
+    const dbAtom = db((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
+
+    const { result, waitFor, waitForNextUpdate } = renderHook(
+      () => useDb(dbAtom, undefined),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              client={successClient}
+              options={{
+                cacheTime: 100,
+              }}
+            >
+              {children}
+            </Wrapper>
+          );
+        },
+      }
+    );
+
+    await waitFor(() => {
+      return result.current.state === "SUCCESS";
+    });
+
+    const stateChanges = result.all.length;
+
+    await waitForNextUpdate();
+
+    expect(result.current.state).toBe("SUCCESS");
+    expect(result.all.length).toBe(stateChanges + 1);
+  });
+  test("Error: Options provided in Context should overwrite the default Config", async () => {
+    const dbAtom = db((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
+
+    const { result, waitFor, waitForNextUpdate } = renderHook(
+      () => useDb(dbAtom, undefined),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              client={errorClient}
+              options={{
+                cacheTime: 100,
+              }}
+            >
+              {children}
+            </Wrapper>
+          );
+        },
+      }
+    );
+
+    await waitFor(() => {
+      return result.current.state === "ERROR";
+    });
+
+    const stateChanges = result.all.length;
+
+    await waitForNextUpdate();
+
+    expect(result.current.state).toBe("ERROR");
+    expect(result.all.length).toBe(stateChanges + 1);
+  });
+
+  test("Success : Option provided in db should overwrite default and context options", async () => {
+    const dbAtom = db(
+      (supabase) => {
+        return supabase.from("users").select("name").get();
+      },
+      { cacheTime: 100 }
+    );
+
+    const { result, waitFor, waitForNextUpdate } = renderHook(
+      () => useDb(dbAtom, undefined),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              client={successClient}
+              options={{
+                cacheTime: 1000 * 60 * 60,
+              }}
+            >
+              {children}
+            </Wrapper>
+          );
+        },
+      }
+    );
+    await waitFor(() => {
+      return result.current.state === "SUCCESS";
+    });
+
+    const stateChanges = result.all.length;
+
+    await waitForNextUpdate();
+
+    expect(result.current.state).toBe("SUCCESS");
+    expect(result.all.length).toBe(stateChanges + 1);
+  });
+
+  test("Error: Options provided in db should overwrite the default Config and context", async () => {
+    const dbAtom = db(
+      (supabase) => {
+        return supabase.from("users").select("name").get();
+      },
+      { cacheTime: 100 }
+    );
+
+    const { result, waitFor, waitForNextUpdate } = renderHook(
+      () => useDb(dbAtom, undefined),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              client={errorClient}
+              options={{
+                cacheTime: 1000 * 60 * 60,
+              }}
+            >
+              {children}
+            </Wrapper>
+          );
+        },
+      }
+    );
+
+    await waitFor(() => {
+      return result.current.state === "ERROR";
+    });
+
+    const stateChanges = result.all.length;
+
+    await waitForNextUpdate();
+
+    expect(result.current.state).toBe("ERROR");
+    expect(result.all.length).toBe(stateChanges + 1);
+  });
+
+  test("Success : Option provided in useDb should overwrite default, context options and dbOptions", async () => {
+    const dbAtom = db(
+      (supabase) => {
+        return supabase.from("users").select("name").get();
+      },
+      { cacheTime: 1000 * 60 * 60 }
+    );
+
+    const { result, waitFor, waitForNextUpdate } = renderHook(
+      () => useDb(dbAtom, undefined, { cacheTime: 100 }),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              client={successClient}
+              options={{
+                cacheTime: 1000 * 60 * 60,
+              }}
+            >
+              {children}
+            </Wrapper>
+          );
+        },
+      }
+    );
+    await waitFor(() => {
+      return result.current.state === "SUCCESS";
+    });
+
+    const stateChanges = result.all.length;
+
+    await waitForNextUpdate();
+
+    expect(result.current.state).toBe("SUCCESS");
+    expect(result.all.length).toBe(stateChanges + 1);
+  });
+
+  test("Error: Options provided in db should overwrite the default Config ,context and db options", async () => {
+    const dbAtom = db(
+      (supabase) => {
+        return supabase.from("users").select("name").get();
+      },
+      { cacheTime: 1000 * 60 * 60 }
+    );
+
+    const { result, waitFor, waitForNextUpdate } = renderHook(
+      () => useDb(dbAtom, undefined, { cacheTime: 100 }),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              client={errorClient}
+              options={{
+                cacheTime: 1000 * 60 * 60,
+              }}
+            >
+              {children}
+            </Wrapper>
+          );
+        },
+      }
+    );
+
+    await waitFor(() => {
+      return result.current.state === "ERROR";
+    });
+
+    const stateChanges = result.all.length;
+
+    await waitForNextUpdate();
+
+    expect(result.current.state).toBe("ERROR");
+    expect(result.all.length).toBe(stateChanges + 1);
+  });
+});
+
 describe("Feature: Refetch based on Cache time", () => {
   test("Success: Should refetch the requests based on cache time ", async () => {
     const dbAtom = db((supabase) => {
@@ -119,10 +416,7 @@ describe("Feature: Refetch based on Cache time", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              config={{ key: KEY, url: url.success }}
-              options={{ cacheTime: 100 }}
-            >
+            <Wrapper client={successClient} options={{ cacheTime: 100 }}>
               {children}
             </Wrapper>
           );
@@ -154,10 +448,7 @@ describe("Feature: Refetch based on Cache time", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              config={{ key: KEY, url: url.error }}
-              options={{ cacheTime: 100 }}
-            >
+            <Wrapper client={errorClient} options={{ cacheTime: 100 }}>
               {children}
             </Wrapper>
           );
@@ -175,295 +466,142 @@ describe("Feature: Refetch based on Cache time", () => {
 
     expect(ServerData.times).toBe(2);
   });
-  describe("Feature: Background fetching", () => {
-    test("Success: Refetching request should happen in background", async () => {
-      const dbAtom = db((supabase) => {
-        return supabase.from("users").select("name").get();
-      });
-
-      const { result, waitFor, waitForNextUpdate } = renderHook(
-        () => useDb(dbAtom, undefined),
-        {
-          // eslint-disable-next-line react/prop-types, react/display-name
-          wrapper: ({ children }) => {
-            return (
-              <Wrapper
-                config={{ key: KEY, url: url.success }}
-                options={{ cacheTime: 100 }}
-              >
-                {children}
-              </Wrapper>
-            );
-          },
-        }
-      );
-
-      await waitFor(() => {
-        return result.current.state === "SUCCESS";
-      });
-
-      const stateChanges = result.all.length;
-
-      await waitForNextUpdate({ timeout: 200 });
-
-      expect(result.current.state).toBe("SUCCESS");
-      expect(result.all.length).toBe(stateChanges + 1);
+});
+describe("Feature: Background fetching", () => {
+  test("Success: Refetching request should happen in background", async () => {
+    const dbAtom = db((supabase) => {
+      return supabase.from("users").select("name").get();
     });
 
-    test("Error: Refetching request should happen in background", async () => {
-      const dbAtom = db((supabase) => {
-        return supabase.from("users").select("name").get();
-      });
-
-      const { result, waitFor, waitForNextUpdate } = renderHook(
-        () => useDb(dbAtom, undefined),
-        {
-          // eslint-disable-next-line react/prop-types, react/display-name
-          wrapper: ({ children }) => {
-            return (
-              <Wrapper
-                config={{ key: KEY, url: url.error }}
-                options={{ cacheTime: 100 }}
-              >
-                {children}
-              </Wrapper>
-            );
-          },
-        }
-      );
-
-      await waitFor(() => {
-        return result.current.state === "ERROR";
-      });
-
-      const stateChanges = result.all.length;
-
-      await waitForNextUpdate({ timeout: 200 });
-
-      expect(result.current.state).toBe("ERROR");
-      expect(result.all.length).toBe(stateChanges + 1);
-    });
-
-    test("Success: If background refetching is disabled then state change should be reflected", async () => {
-      const dbAtom = db((supabase) => {
-        return supabase.from("users").select("name").get();
-      });
-
-      const { result, waitFor, waitForNextUpdate } = renderHook(
-        () => useDb(dbAtom, undefined),
-        {
-          // eslint-disable-next-line react/prop-types, react/display-name
-          wrapper: ({ children }) => {
-            return (
-              <Wrapper
-                config={{ key: KEY, url: url.success }}
-                options={{ cacheTime: 100, backgroundFetch: false }}
-              >
-                {children}
-              </Wrapper>
-            );
-          },
-        }
-      );
-
-      await waitFor(() => {
-        return result.current.state === "SUCCESS";
-      });
-
-      const stateChanges = result.all.length;
-
-      await waitForNextUpdate();
-
-      await waitFor(() => {
-        return result.current.state === "SUCCESS";
-      });
-
-      expect(result.all.length).toBe(stateChanges + 3);
-    });
-
-    test("Error: If background refetching is disabled then state change should be reflected", async () => {
-      const dbAtom = db((supabase) => {
-        return supabase.from("users").select("name").get();
-      });
-
-      const { result, waitFor, waitForNextUpdate } = renderHook(
-        () => useDb(dbAtom, undefined),
-        {
-          // eslint-disable-next-line react/prop-types, react/display-name
-          wrapper: ({ children }) => {
-            return (
-              <Wrapper
-                config={{ key: KEY, url: url.error }}
-                options={{ cacheTime: 100, backgroundFetch: false }}
-              >
-                {children}
-              </Wrapper>
-            );
-          },
-        }
-      );
-
-      await waitFor(() => {
-        return result.current.state === "ERROR";
-      });
-
-      const stateChanges = result.all.length;
-
-      await waitForNextUpdate();
-
-      await waitFor(() => {
-        return result.current.state === "ERROR";
-      });
-
-      expect(result.all.length).toBe(stateChanges + 3);
-    });
-
-    test("Success: The option given in db should take precedence over option provided in context", async () => {
-      const dbAtom = db(
-        (supabase) => {
-          return supabase.from("users").select("name").get();
+    const { result, waitFor, waitForNextUpdate } = renderHook(
+      () => useDb(dbAtom, undefined),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper client={successClient} options={{ cacheTime: 100 }}>
+              {children}
+            </Wrapper>
+          );
         },
-        { backgroundFetch: true }
-      );
+      }
+    );
 
-      const { result, waitFor, waitForNextUpdate } = renderHook(
-        () => useDb(dbAtom, undefined),
-        {
-          // eslint-disable-next-line react/prop-types, react/display-name
-          wrapper: ({ children }) => {
-            return (
-              <Wrapper
-                config={{ key: KEY, url: url.success }}
-                options={{ cacheTime: 100, backgroundFetch: false }}
-              >
-                {children}
-              </Wrapper>
-            );
-          },
-        }
-      );
-
-      await waitFor(() => {
-        return result.current.state === "SUCCESS";
-      });
-
-      const stateChanges = result.all.length;
-
-      await waitForNextUpdate({ timeout: 250 });
-
-      expect(result.current.state).toBe("SUCCESS");
-      expect(result.all.length).toBe(stateChanges + 1);
+    await waitFor(() => {
+      return result.current.state === "SUCCESS";
     });
 
-    test("Error: The option given in db should take precedence over option provided in context", async () => {
-      const dbAtom = db(
-        (supabase) => {
-          return supabase.from("users").select("name").get();
+    const stateChanges = result.all.length;
+
+    await waitForNextUpdate({ timeout: 250 });
+
+    expect(result.current.state).toBe("SUCCESS");
+    expect(result.all.length).toBe(stateChanges + 1);
+  });
+
+  test("Error: Refetching request should happen in background", async () => {
+    const dbAtom = db((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
+
+    const { result, waitFor, waitForNextUpdate } = renderHook(
+      () => useDb(dbAtom, undefined),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper client={errorClient} options={{ cacheTime: 100 }}>
+              {children}
+            </Wrapper>
+          );
         },
-        { backgroundFetch: true }
-      );
+      }
+    );
 
-      const { result, waitFor, waitForNextUpdate } = renderHook(
-        () => useDb(dbAtom, undefined),
-        {
-          // eslint-disable-next-line react/prop-types, react/display-name
-          wrapper: ({ children }) => {
-            return (
-              <Wrapper
-                config={{ key: KEY, url: url.error }}
-                options={{ cacheTime: 100, backgroundFetch: false }}
-              >
-                {children}
-              </Wrapper>
-            );
-          },
-        }
-      );
-
-      await waitFor(() => {
-        return result.current.state === "ERROR";
-      });
-
-      const stateChanges = result.all.length;
-
-      await waitForNextUpdate({ timeout: 250 });
-
-      expect(result.current.state).toBe("ERROR");
-      expect(result.all.length).toBe(stateChanges + 1);
+    await waitFor(() => {
+      return result.current.state === "ERROR";
     });
 
-    test("Success: Option provided in useDb should override both db and context", async () => {
-      const dbAtom = db(
-        (supabase) => {
-          return supabase.from("users").select("name").get();
+    const stateChanges = result.all.length;
+
+    await waitForNextUpdate({ timeout: 200 });
+
+    expect(result.current.state).toBe("ERROR");
+    expect(result.all.length).toBe(stateChanges + 1);
+  });
+
+  test("Success: If background refetching is disabled then state change should be reflected", async () => {
+    const dbAtom = db((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
+
+    const { result, waitFor, waitForNextUpdate } = renderHook(
+      () => useDb(dbAtom, undefined),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              client={successClient}
+              options={{ cacheTime: 100, backgroundFetch: false }}
+            >
+              {children}
+            </Wrapper>
+          );
         },
-        { backgroundFetch: false }
-      );
+      }
+    );
 
-      const { result, waitFor, waitForNextUpdate } = renderHook(
-        () => useDb(dbAtom, undefined, { backgroundFetch: true }),
-        {
-          // eslint-disable-next-line react/prop-types, react/display-name
-          wrapper: ({ children }) => {
-            return (
-              <Wrapper
-                config={{ key: KEY, url: url.success }}
-                options={{ cacheTime: 100, backgroundFetch: false }}
-              >
-                {children}
-              </Wrapper>
-            );
-          },
-        }
-      );
-
-      await waitFor(() => {
-        return result.current.state === "SUCCESS";
-      });
-
-      const stateChanges = result.all.length;
-
-      await waitForNextUpdate({ timeout: 250 });
-
-      expect(result.current.state).toBe("SUCCESS");
-      expect(result.all.length).toBe(stateChanges + 1);
+    await waitFor(() => {
+      return result.current.state === "SUCCESS";
     });
-    test("Error: Option provided in useDb should override both db and context", async () => {
-      const dbAtom = db(
-        (supabase) => {
-          return supabase.from("users").select("name").get();
+
+    const stateChanges = result.all.length;
+
+    await waitForNextUpdate();
+
+    await waitFor(() => {
+      return result.current.state === "SUCCESS";
+    });
+
+    expect(result.all.length).toBe(stateChanges + 3);
+  });
+
+  test("Error: If background refetching is disabled then state change should be reflected", async () => {
+    const dbAtom = db((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
+
+    const { result, waitFor, waitForNextUpdate } = renderHook(
+      () => useDb(dbAtom, undefined),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              client={errorClient}
+              options={{ cacheTime: 100, backgroundFetch: false }}
+            >
+              {children}
+            </Wrapper>
+          );
         },
-        { backgroundFetch: false }
-      );
+      }
+    );
 
-      const { result, waitFor, waitForNextUpdate } = renderHook(
-        () => useDb(dbAtom, undefined, { backgroundFetch: true }),
-        {
-          // eslint-disable-next-line react/prop-types, react/display-name
-          wrapper: ({ children }) => {
-            return (
-              <Wrapper
-                config={{ key: KEY, url: url.error }}
-                options={{ cacheTime: 100, backgroundFetch: false }}
-              >
-                {children}
-              </Wrapper>
-            );
-          },
-        }
-      );
-
-      await waitFor(() => {
-        return result.current.state === "ERROR";
-      });
-
-      const stateChanges = result.all.length;
-
-      await waitForNextUpdate({ timeout: 250 });
-
-      expect(result.current.state).toBe("ERROR");
-      expect(result.all.length).toBe(stateChanges + 1);
+    await waitFor(() => {
+      return result.current.state === "ERROR";
     });
+
+    const stateChanges = result.all.length;
+
+    await waitForNextUpdate();
+
+    await waitFor(() => {
+      return result.current.state === "ERROR";
+    });
+
+    expect(result.all.length).toBe(stateChanges + 3);
   });
 });
 
@@ -482,10 +620,7 @@ describe("Feature: Cache", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              config={{ key: KEY, url: url.success }}
-              options={{ cacheTime: 300000 }}
-            >
+            <Wrapper client={successClient} options={{ cacheTime: 300000 }}>
               {children}
             </Wrapper>
           );
@@ -517,10 +652,7 @@ describe("Feature: Cache", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              config={{ key: KEY, url: url.error }}
-              options={{ cacheTime: 300000 }}
-            >
+            <Wrapper client={errorClient} options={{ cacheTime: 300000 }}>
               {children}
             </Wrapper>
           );
@@ -551,10 +683,7 @@ describe("Feature: Cache", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              config={{ key: KEY, url: url.success }}
-              options={{ cacheTime: 300000 }}
-            >
+            <Wrapper client={successClient} options={{ cacheTime: 300000 }}>
               {children}
             </Wrapper>
           );
@@ -584,10 +713,7 @@ describe("Feature: Cache", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              config={{ key: KEY, url: url.error }}
-              options={{ cacheTime: 300000 }}
-            >
+            <Wrapper client={errorClient} options={{ cacheTime: 300000 }}>
               {children}
             </Wrapper>
           );
@@ -623,10 +749,7 @@ describe("Feature: Cache", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              config={{ key: KEY, url: url.success }}
-              options={{ cacheTime: 300000 }}
-            >
+            <Wrapper client={successClient} options={{ cacheTime: 300000 }}>
               {children}
             </Wrapper>
           );
@@ -663,10 +786,7 @@ describe("Feature: Cache", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              config={{ key: KEY, url: url.error }}
-              options={{ cacheTime: 300000 }}
-            >
+            <Wrapper client={errorClient} options={{ cacheTime: 300000 }}>
               {children}
             </Wrapper>
           );
@@ -682,5 +802,66 @@ describe("Feature: Cache", () => {
     });
 
     expect(ServerData.times).toBe(2);
+  });
+});
+
+describe("Feature: ShouldComponentUpdate", () => {
+  test("Success: testing ShouldComponentUpdate", async () => {
+    const dbAtom = db<any, any>(
+      (supabase) => {
+        return supabase.from("users").select("name").get();
+      },
+      {
+        shouldComponentUpdate: (curr, next) => {
+          if (curr.state === "STALE" && next.state === "LOADING") {
+            return false;
+          } else {
+            return true;
+          }
+        },
+      }
+    );
+
+    const { result, waitFor } = renderHook(() => useDb(dbAtom, undefined), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return <Wrapper client={successClient}>{children}</Wrapper>;
+      },
+    });
+
+    await waitFor(() => {
+      return result.current.state === "SUCCESS";
+    });
+
+    expect(result.all.length).toBe(2);
+  });
+  test("Error: testing ShouldComponentUpdate", async () => {
+    const dbAtom = db<any, any>(
+      (supabase) => {
+        return supabase.from("users").select("name").get();
+      },
+      {
+        shouldComponentUpdate: (curr, next) => {
+          if (curr.state === "STALE" && next.state === "LOADING") {
+            return false;
+          } else {
+            return true;
+          }
+        },
+      }
+    );
+
+    const { result, waitFor } = renderHook(() => useDb(dbAtom, undefined), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return <Wrapper client={errorClient}>{children}</Wrapper>;
+      },
+    });
+
+    await waitFor(() => {
+      return result.current.state === "ERROR";
+    });
+
+    expect(result.all.length).toBe(2);
   });
 });

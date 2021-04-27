@@ -1,14 +1,26 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { useContext } from "react";
 import { PostgrestClient } from "../postgrest";
+import { DbResult } from "./db";
 
 export type SupabaseConfig = {
   url: string;
   key: string;
 };
 
+export const createClient = ({ url, key }: SupabaseConfig) => {
+  return new PostgrestClient(`${url}/rest/v1`, {
+    apiKey: key,
+    Authorization: `Bearer ${key}`,
+  });
+};
+
 export type SupabaseOptions = {
-  cacheTime: number;
-  backgroundFetch: boolean;
+  cacheTime?: number;
+  backgroundFetch?: boolean;
+  shouldComponentUpdate?: (
+    curr: DbResult<unknown>,
+    next: DbResult<unknown>
+  ) => boolean;
 };
 
 const supabase = React.createContext<PostgrestClient | undefined>(undefined);
@@ -17,40 +29,19 @@ const supabaseOptionsContext = React.createContext<SupabaseOptions | undefined>(
 );
 
 export type SupabaseProviderProps = {
-  config: SupabaseConfig;
+  client: PostgrestClient;
   children: React.ReactNode;
-  options?: Partial<SupabaseOptions>;
+  options?: SupabaseOptions;
 };
 
 export const SupabaseProvider = ({
   children,
-  config,
+  client,
   options = {},
 }: SupabaseProviderProps) => {
-  const { cacheTime = 30_000_000, backgroundFetch = true } = options;
-  const [supabaseOptions] = useState<SupabaseOptions>({
-    cacheTime,
-    backgroundFetch,
-  });
-  const [supabaseClient, setSupabaseClient] = useState(
-    new PostgrestClient(`${config.url}/rest/v1`, {
-      apiKey: config.key,
-      Authorization: `Bearer ${config.key}`,
-    })
-  );
-
-  useEffect(() => {
-    setSupabaseClient(
-      new PostgrestClient(`${config.url}/rest/v1`, {
-        apiKey: config.key,
-        Authorization: `Bearer ${config.key}`,
-      })
-    );
-  }, [config]);
-
   return (
-    <supabaseOptionsContext.Provider value={supabaseOptions}>
-      <supabase.Provider value={supabaseClient}>{children}</supabase.Provider>
+    <supabaseOptionsContext.Provider value={options}>
+      <supabase.Provider value={client}>{children}</supabase.Provider>
     </supabaseOptionsContext.Provider>
   );
 };

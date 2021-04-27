@@ -31,7 +31,7 @@ export class Cache {
     hash: string,
     value: DbResult<T>,
     options: SetCacheOptions = {}
-  ): DbResult<T> {
+  ) {
     if (!Cache.cache[hash]) {
       throw new Error("There is no cache with the hash value " + hash);
     } else {
@@ -44,7 +44,6 @@ export class Cache {
           doOnChange(value);
         });
       }
-      return Cache.cache[hash].result as DbResult<T>;
     }
   }
 
@@ -58,7 +57,6 @@ export class Cache {
       backgroundFetch: boolean;
     }
   ) {
-    let timeToken: NodeJS.Timeout;
     if (Cache.cache[hash]) {
       Cache.cache[hash].subscribers[options.unique] = callOnChange as (
         cache: DbResult<unknown>
@@ -66,18 +64,17 @@ export class Cache {
     } else {
       const { interval, unique, backgroundFetch } = options;
       Cache.cache[hash] = {
+        result: {
+          data: undefined,
+          error: undefined,
+          state: "STALE",
+        },
         subscribers: {
           [unique]: callOnChange as (cache: DbResult<unknown>) => void,
         },
       } as CacheHash;
 
-      Cache.setCache(hash, {
-        data: undefined,
-        error: undefined,
-        state: "STALE",
-      });
-
-      timeToken = fetchDataWithInterval(hash, supabaseBuild, {
+      const timeToken = fetchDataWithInterval(hash, supabaseBuild, {
         interval,
         backgroundFetch,
       });
