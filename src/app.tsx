@@ -1,14 +1,25 @@
 import React, { useState } from "react";
 import { db, useDb } from "./react-supabase/db";
 
-const userData = db<{ users: string }>((supabase) => {
-  return supabase
-    .from("users")
-    .select("*")
-    .lt("id", 3)
-    .order("id", { ascending: false })
-    .get();
-});
+const userData = db<any, { users: string }>(
+  (supabase) => {
+    return supabase
+      .from("users")
+      .select("*")
+      .lt("id", 3)
+      .order("id", { ascending: false })
+      .get();
+  },
+  {
+    shouldComponentUpdate: (curr, next) => {
+      if (curr.state === "STALE" && next.state === "LOADING") {
+        return false;
+      } else {
+        return true;
+      }
+    },
+  }
+);
 
 export const App = () => {
   const userDataRes = useDb(userData, { users: "users" });

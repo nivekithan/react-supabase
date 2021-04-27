@@ -14,11 +14,11 @@ export const url = {
 
 export const Wrapper: WrapperComponent<SupabaseProviderProps> = ({
   children,
-  config,
+  client,
   options,
 }) => {
   return (
-    <SupabaseProvider config={config} options={options}>
+    <SupabaseProvider client={client} options={options}>
       {children}
     </SupabaseProvider>
   );

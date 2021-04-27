@@ -1,30 +1,25 @@
 import { PostgrestClient } from "../postgrest";
 import { SupabaseBuild } from "../postgrest/lib/types";
-import { useSupabase, useSupabaseOptions } from "./context";
+import { useSupabase } from "./context";
 import { Key } from "./key";
 import { useEffect, useRef, useState } from "react";
-import { stableStringify } from "./utlis";
+import { stableStringify } from "./utils";
 import { Cache, fetchData } from "./cache";
+import { useGetOptions } from "./useGetOptions";
 
-type DbContext<props> = {
+type DbContext<data, props> = {
   createUrl: (supabase: PostgrestClient, para: props) => SupabaseBuild;
   id: Key;
-  options: dbOptions;
+  options: dbOptions<data>;
 };
 
-type dbOptions = {
+export type dbOptions<data> = {
   backgroundFetch?: boolean;
-};
-
-export const db = <props>(
-  createUrl: (supabase: PostgrestClient, para: props) => SupabaseBuild,
-  options: dbOptions = {}
-): DbContext<props> => {
-  return {
-    createUrl,
-    id: Key.getUniqueKey(),
-    options,
-  };
+  shouldComponentUpdate?: (
+    curr: DbResult<data>,
+    next: DbResult<data>
+  ) => boolean;
+  cacheTime?: number;
 };
 
 export type DbResult<Data> = {
@@ -33,30 +28,51 @@ export type DbResult<Data> = {
   error: Error | undefined;
 };
 
+export const db = <data, props>(
+  createUrl: (supabase: PostgrestClient, para: props) => SupabaseBuild,
+  options: dbOptions<data> = {}
+): DbContext<data, props> => {
+  return {
+    createUrl,
+    id: Key.getUniqueKey(),
+    options,
+  };
+};
+
+export type useDbOptions<data> = {
+  backgroundFetch?: boolean;
+  shouldComponentUpdate?: (
+    curr: DbResult<data>,
+    next: DbResult<data>
+  ) => boolean;
+  cacheTime?: number;
+};
+
 export const useDb = <data, props>(
-  db: DbContext<props>,
+  db: DbContext<data, props>,
   args: props,
-  options: dbOptions = {}
+  options: useDbOptions<data> = {}
 ) => {
-  let bgFetch: boolean;
-
   const supabase = useSupabase();
-  const { cacheTime, backgroundFetch } = useSupabaseOptions();
-
-  if (options.backgroundFetch !== undefined) {
-    bgFetch = options.backgroundFetch;
-  } else if (db.options.backgroundFetch !== undefined) {
-    bgFetch = db.options.backgroundFetch;
-  } else {
-    bgFetch = backgroundFetch;
-  }
+  const { cacheTime, backgroundFetch, shouldComponentUpdate } = useGetOptions(
+    db.options,
+    options
+  );
 
   const { current: supabaseBuild } = useRef(db.createUrl(supabase, args));
   const hash = `${db.id}${stableStringify(args)}`;
   const { current: key } = useRef(Key.getUniqueKey());
 
   const cache = () => {
-    return Cache.getCache<data>(hash);
+    try {
+      return Cache.getCache<data>(hash);
+    } catch (err) {
+      return {
+        data: undefined,
+        error: undefined,
+        state: "STALE",
+      } as DbResult<data>;
+    }
   };
 
   const [resultData, setResultData] = useState<DbResult<data>>(cache());
@@ -67,13 +83,15 @@ export const useDb = <data, props>(
     const unSubscribe = Cache.subscribe<data>(
       hash,
       (cache) => {
-        isMounted && setResultData(cache);
+        shouldComponentUpdate(resultData, cache) &&
+          isMounted &&
+          setResultData(cache);
       },
       supabaseBuild,
       {
         interval: cacheTime,
         unique: key,
-        backgroundFetch: bgFetch,
+        backgroundFetch,
       }
     );
 
@@ -81,7 +99,16 @@ export const useDb = <data, props>(
       isMounted = false;
       unSubscribe();
     };
-  }, [supabaseBuild, hash, setResultData, cacheTime, key, bgFetch]);
+  }, [
+    supabaseBuild,
+    hash,
+    setResultData,
+    cacheTime,
+    key,
+    backgroundFetch,
+    shouldComponentUpdate,
+    resultData,
+  ]);
 
   /**
    * SetInterval delays the execution functions by the specified time so
