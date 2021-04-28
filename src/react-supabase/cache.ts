@@ -36,7 +36,7 @@ export class Cache {
     options: SetCacheOptions = {}
   ) {
     if (!Cache.cache[hash]) {
-      throw new Error("setCache: There is no cache with the hash: " + hash);
+      return;
     } else {
       const { backgroundFetch = false } = options;
 
