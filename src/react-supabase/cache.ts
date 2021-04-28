@@ -55,6 +55,7 @@ export class Cache {
       unique: string;
       interval: number;
       backgroundFetch: boolean;
+      retry: number;
     }
   ) {
     if (Cache.cache[hash]) {
@@ -62,7 +63,7 @@ export class Cache {
         cache: DbResult<unknown>
       ) => void;
     } else {
-      const { interval, unique, backgroundFetch } = options;
+      const { interval, unique, backgroundFetch, retry } = options;
       Cache.cache[hash] = {
         result: {
           data: undefined,
@@ -77,6 +78,7 @@ export class Cache {
       const timeToken = fetchDataWithInterval(hash, supabaseBuild, {
         interval,
         backgroundFetch,
+        retry,
       });
 
       Cache.cache[hash].stopFetching = () => {
@@ -110,7 +112,8 @@ export class Cache {
 
 type FetchDataIntervalOptions = {
   interval: number;
-  backgroundFetch?: boolean;
+  backgroundFetch: boolean;
+  retry: number;
 };
 
 const fetchDataWithInterval = (
@@ -118,7 +121,7 @@ const fetchDataWithInterval = (
   supabaseBuild: SupabaseBuild,
   options: FetchDataIntervalOptions
 ) => {
-  const { interval, backgroundFetch } = options;
+  const { interval, backgroundFetch, retry } = options;
   const cache = () => {
     return Cache.getCache<unknown>(hash);
   };
@@ -136,7 +139,7 @@ const fetchDataWithInterval = (
       }
     );
     if (cache().state === "STALE") {
-      fetchData(hash, supabaseBuild, { backgroundFetch });
+      fetchData(hash, supabaseBuild, { backgroundFetch, retry });
     }
   }, interval);
 
@@ -145,14 +148,15 @@ const fetchDataWithInterval = (
 
 type FetchDataOptions = {
   backgroundFetch?: boolean;
+  retry: number;
 };
 
 export const fetchData = async (
   hash: string,
   supabaseBuild: SupabaseBuild,
-  options: FetchDataOptions = {}
+  options: FetchDataOptions
 ) => {
-  const { backgroundFetch } = options;
+  const { backgroundFetch, retry } = options;
   Cache.setCache(
     hash,
     {
@@ -164,26 +168,37 @@ export const fetchData = async (
       backgroundFetch,
     }
   );
+  let i = 0;
+  let dbResult: DbResult<unknown> = {
+    state: "STALE",
+    error: undefined,
+    data: undefined,
+  };
 
-  const result = await fetch(supabaseBuild.url.toString(), {
-    headers: supabaseBuild.headers,
-    method: supabaseBuild.method,
-  });
+  do {
+    const result = await fetch(supabaseBuild.url.toString(), {
+      headers: supabaseBuild.headers,
+      method: supabaseBuild.method,
+    });
+    if (result.ok) {
+      dbResult = {
+        state: "SUCCESS",
+        data: JSON.parse(await result.text()),
+        error: undefined,
+      };
+      break;
+    } else if (i === retry) {
+      dbResult = {
+        state: "ERROR",
+        data: undefined,
+        error: await result.json(),
+      };
+      break;
+    } else {
+      i++;
+    }
+  } while (i < retry + 1);
 
-  let dbResult: DbResult<unknown>;
-  if (result.ok) {
-    dbResult = {
-      state: "SUCCESS",
-      data: JSON.parse(await result.text()),
-      error: undefined,
-    };
-  } else {
-    dbResult = {
-      state: "ERROR",
-      data: undefined,
-      error: await result.json(),
-    };
-  }
   Cache.setCache(hash, dbResult, {
     backgroundFetch,
   });

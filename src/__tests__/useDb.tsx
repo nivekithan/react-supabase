@@ -13,6 +13,7 @@ import {
   successResult,
   errorResult,
   ServerData,
+  setSuccessOnTime,
 } from "./utils";
 import { Cache } from "@src/react-supabase/cache";
 import { Key } from "@src/react-supabase/key";
@@ -39,6 +40,11 @@ const errorClient = createClient({
   key: KEY,
 });
 
+const errorToSuccessClient = createClient({
+  url: url.errorToSuccess,
+  key: KEY,
+});
+
 describe("Flow of requests", () => {
   test("Success: Request is success", async () => {
     const dbAtom = db((supabase) => {
@@ -51,7 +57,10 @@ describe("Flow of requests", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper client={successClient} options={{ cacheTime: 300000 }}>
+            <Wrapper
+              client={successClient}
+              options={{ cacheTime: 300000, retry: 0 }}
+            >
               {children}
             </Wrapper>
           );
@@ -85,7 +94,10 @@ describe("Flow of requests", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper client={errorClient} options={{ cacheTime: 300000 }}>
+            <Wrapper
+              client={errorClient}
+              options={{ cacheTime: 300000, retry: 0 }}
+            >
               {children}
             </Wrapper>
           );
@@ -165,6 +177,7 @@ describe("Supabase options", () => {
       });
 
       const stateChanges = result.all.length;
+      const times = ServerData.times;
 
       await waitForNextUpdate({
         timeout: 3000 * 60 + 250,
@@ -172,6 +185,7 @@ describe("Supabase options", () => {
 
       expect(result.current.state).toBe("ERROR");
       expect(result.all.length).toBe(stateChanges + 1);
+      expect(ServerData.times).toBe(times + 4);
     },
     3000 * 60 + 250 + 5000
   );
@@ -191,6 +205,7 @@ describe("Supabase options", () => {
               client={successClient}
               options={{
                 cacheTime: 100,
+                retry: 0,
               }}
             >
               {children}
@@ -226,6 +241,7 @@ describe("Supabase options", () => {
               client={errorClient}
               options={{
                 cacheTime: 100,
+                retry: 0,
               }}
             >
               {children}
@@ -265,6 +281,7 @@ describe("Supabase options", () => {
               client={successClient}
               options={{
                 cacheTime: 1000 * 60 * 60,
+                retry: 0,
               }}
             >
               {children}
@@ -303,6 +320,7 @@ describe("Supabase options", () => {
               client={errorClient}
               options={{
                 cacheTime: 1000 * 60 * 60,
+                retry: 0,
               }}
             >
               {children}
@@ -342,6 +360,7 @@ describe("Supabase options", () => {
               client={successClient}
               options={{
                 cacheTime: 1000 * 60 * 60,
+                retry: 0,
               }}
             >
               {children}
@@ -380,6 +399,7 @@ describe("Supabase options", () => {
               client={errorClient}
               options={{
                 cacheTime: 1000 * 60 * 60,
+                retry: 0,
               }}
             >
               {children}
@@ -416,7 +436,10 @@ describe("Feature: Refetch based on Cache time", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper client={successClient} options={{ cacheTime: 100 }}>
+            <Wrapper
+              client={successClient}
+              options={{ cacheTime: 100, retry: 0 }}
+            >
               {children}
             </Wrapper>
           );
@@ -448,7 +471,10 @@ describe("Feature: Refetch based on Cache time", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper client={errorClient} options={{ cacheTime: 100 }}>
+            <Wrapper
+              client={errorClient}
+              options={{ cacheTime: 100, retry: 0 }}
+            >
               {children}
             </Wrapper>
           );
@@ -479,7 +505,10 @@ describe("Feature: Background fetching", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper client={successClient} options={{ cacheTime: 100 }}>
+            <Wrapper
+              client={successClient}
+              options={{ cacheTime: 100, retry: 0 }}
+            >
               {children}
             </Wrapper>
           );
@@ -510,7 +539,10 @@ describe("Feature: Background fetching", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper client={errorClient} options={{ cacheTime: 100 }}>
+            <Wrapper
+              client={errorClient}
+              options={{ cacheTime: 100, retry: 0 }}
+            >
               {children}
             </Wrapper>
           );
@@ -543,7 +575,7 @@ describe("Feature: Background fetching", () => {
           return (
             <Wrapper
               client={successClient}
-              options={{ cacheTime: 100, backgroundFetch: false }}
+              options={{ cacheTime: 100, backgroundFetch: false, retry: 0 }}
             >
               {children}
             </Wrapper>
@@ -580,7 +612,7 @@ describe("Feature: Background fetching", () => {
           return (
             <Wrapper
               client={errorClient}
-              options={{ cacheTime: 100, backgroundFetch: false }}
+              options={{ cacheTime: 100, backgroundFetch: false, retry: 0 }}
             >
               {children}
             </Wrapper>
@@ -620,7 +652,10 @@ describe("Feature: Cache", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper client={successClient} options={{ cacheTime: 300000 }}>
+            <Wrapper
+              client={successClient}
+              options={{ cacheTime: 300000, retry: 0 }}
+            >
               {children}
             </Wrapper>
           );
@@ -652,7 +687,10 @@ describe("Feature: Cache", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper client={errorClient} options={{ cacheTime: 300000 }}>
+            <Wrapper
+              client={errorClient}
+              options={{ cacheTime: 300000, retry: 0 }}
+            >
               {children}
             </Wrapper>
           );
@@ -683,7 +721,10 @@ describe("Feature: Cache", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper client={successClient} options={{ cacheTime: 300000 }}>
+            <Wrapper
+              client={successClient}
+              options={{ cacheTime: 300000, retry: 0 }}
+            >
               {children}
             </Wrapper>
           );
@@ -713,7 +754,10 @@ describe("Feature: Cache", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper client={errorClient} options={{ cacheTime: 300000 }}>
+            <Wrapper
+              client={errorClient}
+              options={{ cacheTime: 300000, retry: 0 }}
+            >
               {children}
             </Wrapper>
           );
@@ -749,7 +793,10 @@ describe("Feature: Cache", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper client={successClient} options={{ cacheTime: 300000 }}>
+            <Wrapper
+              client={successClient}
+              options={{ cacheTime: 300000, retry: 0 }}
+            >
               {children}
             </Wrapper>
           );
@@ -786,7 +833,10 @@ describe("Feature: Cache", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper client={errorClient} options={{ cacheTime: 300000 }}>
+            <Wrapper
+              client={errorClient}
+              options={{ cacheTime: 300000, retry: 0 }}
+            >
               {children}
             </Wrapper>
           );
@@ -863,5 +913,89 @@ describe("Feature: ShouldComponentUpdate", () => {
     });
 
     expect(result.all.length).toBe(2);
+  });
+});
+
+describe("Feature: Refetching error request", () => {
+  test("ErrorToSuccess : The first response is success ", async () => {
+    setSuccessOnTime(1);
+
+    const dbAtom = db<any, any>((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
+
+    const { result, waitFor } = renderHook(() => useDb(dbAtom, undefined), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return <Wrapper client={errorToSuccessClient}>{children}</Wrapper>;
+      },
+    });
+
+    await waitFor(() => {
+      return result.current.state === "SUCCESS";
+    });
+
+    expect(ServerData.times).toBe(1);
+  });
+
+  test("ErrorToSuccess: Success on last try", async () => {
+    setSuccessOnTime(4);
+
+    const dbAtom = db<any, any>((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
+
+    const { result, waitFor } = renderHook(() => useDb(dbAtom, undefined), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return <Wrapper client={errorToSuccessClient}>{children}</Wrapper>;
+      },
+    });
+
+    await waitFor(() => {
+      return result.current.state === "SUCCESS";
+    });
+
+    expect(ServerData.times).toBe(4);
+  });
+
+  test("ErrorToSuccess: Success on in between try", async () => {
+    setSuccessOnTime(3);
+
+    const dbAtom = db<any, any>((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
+
+    const { result, waitFor } = renderHook(() => useDb(dbAtom, undefined), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return <Wrapper client={errorToSuccessClient}>{children}</Wrapper>;
+      },
+    });
+
+    await waitFor(() => {
+      return result.current.state === "SUCCESS";
+    });
+
+    expect(ServerData.times).toBe(3);
+  });
+
+  test("ErrorToSuccess: Never a success response", async () => {
+    const dbAtom = db<any, any>((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
+
+    const { result, waitFor } = renderHook(() => useDb(dbAtom, undefined), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return <Wrapper client={errorToSuccessClient}>{children}</Wrapper>;
+      },
+    });
+
+    await waitFor(() => {
+      return result.current.state === "ERROR";
+    });
+
+    expect(ServerData.times).toBe(4);
   });
 });

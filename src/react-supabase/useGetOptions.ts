@@ -9,12 +9,14 @@ type config<data> = {
     curr: DbResult<data>,
     next: DbResult<data>
   ) => boolean;
+  retry: number;
 };
 
 const defaultConfig = {
   cacheTime: 3000 * 60,
   backgroundFetch: true,
   shouldComponentUpdate: () => true,
+  retry: 3,
 };
 
 export const useGetOptions = <data>(

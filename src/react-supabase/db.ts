@@ -20,6 +20,7 @@ export type dbOptions<data> = {
     next: DbResult<data>
   ) => boolean;
   cacheTime?: number;
+  retry?: number;
 };
 
 export type DbResult<Data> = {
@@ -46,6 +47,7 @@ export type useDbOptions<data> = {
     next: DbResult<data>
   ) => boolean;
   cacheTime?: number;
+  retry?: number;
 };
 
 export const useDb = <data, props>(
@@ -54,10 +56,7 @@ export const useDb = <data, props>(
   options: useDbOptions<data> = {}
 ) => {
   const supabase = useSupabase();
-  const { cacheTime, backgroundFetch, shouldComponentUpdate } = useGetOptions(
-    db.options,
-    options
-  );
+  const finalOptions = useGetOptions(db.options, options);
 
   const { current: supabaseBuild } = useRef(db.createUrl(supabase, args));
   const hash = `${db.id}${stableStringify(args)}`;
@@ -80,6 +79,13 @@ export const useDb = <data, props>(
   useEffect(() => {
     let isMounted = true;
 
+    const {
+      backgroundFetch,
+      cacheTime,
+      retry,
+      shouldComponentUpdate,
+    } = finalOptions;
+
     const unSubscribe = Cache.subscribe<data>(
       hash,
       (cache) => {
@@ -92,6 +98,7 @@ export const useDb = <data, props>(
         interval: cacheTime,
         unique: key,
         backgroundFetch,
+        retry,
       }
     );
 
@@ -99,16 +106,7 @@ export const useDb = <data, props>(
       isMounted = false;
       unSubscribe();
     };
-  }, [
-    supabaseBuild,
-    hash,
-    setResultData,
-    cacheTime,
-    key,
-    backgroundFetch,
-    shouldComponentUpdate,
-    resultData,
-  ]);
+  }, [supabaseBuild, hash, setResultData, key, resultData, finalOptions]);
 
   /**
    * SetInterval delays the execution functions by the specified time so
@@ -119,7 +117,7 @@ export const useDb = <data, props>(
     const cache = Cache.getCache(hash);
 
     if (cache.state === "STALE") {
-      fetchData(hash, supabaseBuild);
+      fetchData(hash, supabaseBuild, { retry: finalOptions.retry });
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
