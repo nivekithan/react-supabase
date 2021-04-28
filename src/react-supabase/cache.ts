@@ -8,8 +8,9 @@ type CacheHash = {
     [key: string]: (cache: DbResult<unknown>) => void;
   };
   stopRefetching: () => void;
-  timeToken: NodeJS.Timeout | undefined;
   startRefetching: (immediate?: boolean) => void;
+  refetchingTimeInterval: NodeJS.Timeout | undefined;
+  stopRefetchingTimeout: NodeJS.Timeout | undefined;
 };
 
 type SetCacheOptions = {
@@ -17,7 +18,7 @@ type SetCacheOptions = {
 };
 
 export class Cache {
-  private static cache: {
+  static cache: {
     [hash: string]: CacheHash;
   } = {};
 
@@ -49,13 +50,22 @@ export class Cache {
     }
   }
 
-  static subscribe<T>(
+  static subscribe<data>(
     hash: string,
-    callOnChange: (cache: DbResult<T>) => void,
-    unique: string
+    callOnChange: (cache: DbResult<data>) => void,
+    options: {
+      unique: string;
+      stopRefetchTimeout: number;
+    }
   ) {
     if (Cache.cache[hash]) {
-      Cache.cache[hash].subscribers[unique] = callOnChange as (
+      const stopRefetchTimeout = Cache.cache[hash].stopRefetchingTimeout;
+      if (stopRefetchTimeout) {
+        clearTimeout(stopRefetchTimeout);
+        Cache.cache[hash].stopRefetchingTimeout = undefined;
+      }
+
+      Cache.cache[hash].subscribers[options.unique] = callOnChange as (
         cache: DbResult<unknown>
       ) => void;
       Cache.cache[hash].startRefetching();
@@ -73,8 +83,16 @@ export class Cache {
        *
        * Thats why optional chaining
        */
+      if (Cache.cache[hash]) {
+        delete Cache.cache[hash].subscribers[options.unique];
 
-      delete Cache.cache[hash]?.subscribers[unique];
+        if (Object.values(Cache.cache[hash].subscribers).length === 0) {
+          const timeToken = setTimeout(() => {
+            Cache.cache[hash]?.stopRefetching();
+          }, options.stopRefetchTimeout);
+          Cache.cache[hash].stopRefetchingTimeout = timeToken;
+        }
+      }
     };
   }
 
@@ -100,17 +118,19 @@ export class Cache {
 
         subscribers: {},
 
-        timeToken: undefined,
+        refetchingTimeInterval: undefined,
+        stopRefetchingTimeout: undefined,
 
         stopRefetching: () => {
           /**
            * If there is not a timeToken then we wont clear it
            */
 
-          const timeToken = Cache.cache[hash]?.timeToken;
+          const timeToken = Cache.cache[hash]?.refetchingTimeInterval;
 
           if (timeToken) {
             clearInterval(timeToken);
+            Cache.cache[hash].refetchingTimeInterval = undefined;
           }
 
           return;
@@ -122,7 +142,7 @@ export class Cache {
            * so there is no need to start a new one
            */
 
-          if (Cache.cache[hash]?.timeToken) {
+          if (Cache.cache[hash]?.refetchingTimeInterval) {
             return;
           }
           if (immediate) {
@@ -134,7 +154,7 @@ export class Cache {
             retry,
           });
 
-          Cache.cache[hash].timeToken = timeToken;
+          Cache.cache[hash].refetchingTimeInterval = timeToken;
         },
       };
     }
@@ -143,6 +163,9 @@ export class Cache {
   static reset() {
     Object.values(Cache.cache).forEach((cache) => {
       cache.stopRefetching();
+      if (cache.stopRefetchingTimeout) {
+        clearTimeout(cache.stopRefetchingTimeout);
+      }
     });
 
     Cache.cache = {};

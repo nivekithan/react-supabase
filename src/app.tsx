@@ -22,7 +22,6 @@ const userData = db<any, { users: string }>(
 );
 
 export const App = () => {
-  const userDataRes = useDb(userData, { users: "users" });
   const [showChildren, setShowChildren] = useState(false);
 
   const onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -30,13 +29,13 @@ export const App = () => {
     setShowChildren((s) => !s);
   };
 
-  if (userDataRes.state === "LOADING") {
-    console.log(1, "Loading");
-  } else if (userDataRes.state === "ERROR") {
-    console.log(1, "Error", userDataRes.error);
-  } else {
-    console.log(1, userDataRes.state, userDataRes.data, userDataRes.error);
-  }
+  // if (userDataRes.state === "LOADING") {
+  //   console.log(1, "Loading");
+  // } else if (userDataRes.state === "ERROR") {
+  //   console.log(1, "Error", userDataRes.error);
+  // } else {
+  //   console.log(1, userDataRes.state, userDataRes.data, userDataRes.error);
+  // }
 
   return (
     <div>
@@ -48,7 +47,11 @@ export const App = () => {
 };
 
 const Component = () => {
-  const userDataRes = useDb(userData, { users: "users" });
+  const userDataRes = useDb(
+    userData,
+    { users: "users" },
+    { cacheTime: 2000, stopRefetchTimeout: 100 }
+  );
 
   if (userDataRes.state === "LOADING") {
     console.log(2, "Loading");

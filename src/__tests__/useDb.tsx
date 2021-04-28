@@ -134,7 +134,7 @@ describe("Supabase options", () => {
         return supabase.from("users").select("name").get();
       });
 
-      const { result, waitFor, waitForNextUpdate } = renderHook(
+      const { result, waitFor, waitForNextUpdate, unmount } = renderHook(
         () => useDb(dbAtom, undefined),
         {
           // eslint-disable-next-line react/prop-types, react/display-name
@@ -156,8 +156,14 @@ describe("Supabase options", () => {
 
       expect(result.current.state).toBe("SUCCESS");
       expect(result.all.length).toBe(stateChanges + 1);
+
+      unmount();
+
+      await new Promise((r) => setTimeout(r, 3000 * 60 * 2));
+
+      expect(ServerData.times).toBe(3);
     },
-    3000 * 60 + 250 + 5000
+    3000 * 60 * 3 + 250 + 5000
   );
   test.skip(
     "Error: Behavior of default supabaseOptions",
@@ -166,7 +172,7 @@ describe("Supabase options", () => {
         return supabase.from("users").select("name").get();
       });
 
-      const { result, waitFor, waitForNextUpdate } = renderHook(
+      const { result, waitFor, waitForNextUpdate, unmount } = renderHook(
         () => useDb(dbAtom, undefined),
         {
           // eslint-disable-next-line react/prop-types, react/display-name
@@ -190,8 +196,14 @@ describe("Supabase options", () => {
       expect(result.current.state).toBe("ERROR");
       expect(result.all.length).toBe(stateChanges + 1);
       expect(ServerData.times).toBe(times + 4);
+
+      unmount();
+
+      await new Promise((r) => setTimeout(r, 3000 * 60 * 2));
+
+      expect(ServerData.times).toBe(times + 4 + 4);
     },
-    3000 * 60 + 250 + 5000
+    3000 * 60 * 3 + 250 + 5000
   );
 
   test("Success: Options provided in Context should overwrite the default Config", async () => {
@@ -1001,5 +1013,83 @@ describe("Feature: Refetching error request", () => {
     });
 
     expect(ServerData.times).toBe(4);
+  });
+});
+
+describe("Feature: Garbage collection", () => {
+  test("Success: The refetching request based on cache time should stopped if there are no subscribers for stopRefetchTimeout", async () => {
+    const dbAtom = db<any, any>((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
+
+    const { result, waitFor, unmount, rerender } = renderHook(
+      () => useDb(dbAtom, undefined),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              client={successClient}
+              options={{ cacheTime: 200, retry: 0, stopRefetchTimeout: 100 }}
+            >
+              {children}
+            </Wrapper>
+          );
+        },
+      }
+    );
+
+    await waitFor(() => {
+      return result.current.state === "SUCCESS";
+    });
+    const serverCalls = ServerData.times;
+
+    unmount();
+
+    rerender();
+
+    unmount();
+
+    await new Promise((r) => setTimeout(r, 200));
+
+    expect(ServerData.times).toBe(serverCalls);
+  });
+
+  test("Error: The refetching request based on cache time should stopped if there are no subscribers for stopRefetchTimeout", async () => {
+    const dbAtom = db<any, any>((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
+
+    const { result, waitFor, unmount, rerender } = renderHook(
+      () => useDb(dbAtom, undefined),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              client={errorClient}
+              options={{ cacheTime: 200, retry: 0, stopRefetchTimeout: 100 }}
+            >
+              {children}
+            </Wrapper>
+          );
+        },
+      }
+    );
+
+    await waitFor(() => {
+      return result.current.state === "ERROR";
+    });
+    const serverCalls = ServerData.times;
+
+    unmount();
+
+    rerender();
+
+    unmount();
+
+    await new Promise((r) => setTimeout(r, 200));
+
+    expect(ServerData.times).toBe(serverCalls);
   });
 });

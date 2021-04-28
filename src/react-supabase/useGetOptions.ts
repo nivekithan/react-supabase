@@ -10,6 +10,7 @@ type config<data> = {
     next: DbResult<data>
   ) => boolean;
   retry: number;
+  stopRefetchTimeout: number;
 };
 
 const defaultConfig = {
@@ -17,6 +18,7 @@ const defaultConfig = {
   backgroundFetch: true,
   shouldComponentUpdate: () => true,
   retry: 3,
+  stopRefetchTimeout: 3000 * 60,
 };
 
 export const useGetOptions = <data>(
