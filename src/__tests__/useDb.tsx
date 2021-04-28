@@ -26,6 +26,7 @@ afterEach(() => {
   Key.reset();
   ServerData.reset();
   server.resetHandlers();
+  jest.useRealTimers();
 });
 
 afterAll(() => server.close());
@@ -127,84 +128,109 @@ describe("Flow of requests", () => {
 });
 
 describe("Supabase options", () => {
-  test.skip(
-    "Success: Behavior of default supabaseOptions",
-    async () => {
-      const dbAtom = db((supabase) => {
-        return supabase.from("users").select("name").get();
-      });
+  test("Success: Behavior of default supabaseOptions", async () => {
+    jest.useFakeTimers();
 
-      const { result, waitFor, waitForNextUpdate, unmount } = renderHook(
-        () => useDb(dbAtom, undefined),
-        {
-          // eslint-disable-next-line react/prop-types, react/display-name
-          wrapper: ({ children }) => {
-            return <Wrapper client={successClient}>{children}</Wrapper>;
-          },
-        }
-      );
+    const dbAtom = db((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
 
-      await waitFor(() => {
-        return result.current.state === "SUCCESS";
-      });
+    const { result, waitFor, waitForNextUpdate, unmount } = renderHook(
+      () => useDb(dbAtom, undefined),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return <Wrapper client={successClient}>{children}</Wrapper>;
+        },
+      }
+    );
+    await waitFor(() => {
+      return result.current.state === "SUCCESS";
+    });
 
-      const stateChanges = result.all.length;
+    const stateChanges = result.all.length;
 
-      await waitForNextUpdate({
-        timeout: 3000 * 60 + 250,
-      });
+    jest.advanceTimersByTime(3000 * 60);
 
-      expect(result.current.state).toBe("SUCCESS");
-      expect(result.all.length).toBe(stateChanges + 1);
+    await waitForNextUpdate({
+      timeout: 250,
+    });
 
-      unmount();
+    expect(result.all.length).toBe(stateChanges + 1);
 
-      await new Promise((r) => setTimeout(r, 3000 * 60 * 2));
+    unmount();
 
-      expect(ServerData.times).toBe(3);
-    },
-    3000 * 60 * 3 + 250 + 5000
-  );
-  test.skip(
-    "Error: Behavior of default supabaseOptions",
-    async () => {
-      const dbAtom = db((supabase) => {
-        return supabase.from("users").select("name").get();
-      });
+    jest.advanceTimersByTime(3000 * 60);
 
-      const { result, waitFor, waitForNextUpdate, unmount } = renderHook(
-        () => useDb(dbAtom, undefined),
-        {
-          // eslint-disable-next-line react/prop-types, react/display-name
-          wrapper: ({ children }) => {
-            return <Wrapper client={errorClient}>{children}</Wrapper>;
-          },
-        }
-      );
+    /**
+     * Even though we advanced the time that does not mean that the api request also
+     * gets resolved.  Api request happens real-time so we have to wait for some time
+     */
 
-      await waitFor(() => {
-        return result.current.state === "ERROR";
-      });
+    jest.useRealTimers();
 
-      const stateChanges = result.all.length;
-      const times = ServerData.times;
+    await new Promise((r) => setTimeout(r, 200));
 
-      await waitForNextUpdate({
-        timeout: 3000 * 60 + 250,
-      });
+    expect(ServerData.times).toBe(3);
 
-      expect(result.current.state).toBe("ERROR");
-      expect(result.all.length).toBe(stateChanges + 1);
-      expect(ServerData.times).toBe(times + 4);
+    jest.useFakeTimers();
+    jest.advanceTimersByTime(3000 * 60);
 
-      unmount();
+    jest.useRealTimers();
+    await new Promise((r) => setTimeout(r, 200));
+    expect(ServerData.times).toBe(3);
+  });
 
-      await new Promise((r) => setTimeout(r, 3000 * 60 * 2));
+  test("Error: Behavior of default supabaseOptions", async () => {
+    jest.useFakeTimers();
+    const dbAtom = db((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
 
-      expect(ServerData.times).toBe(times + 4 + 4);
-    },
-    3000 * 60 * 3 + 250 + 5000
-  );
+    const { result, waitFor, waitForNextUpdate, unmount } = renderHook(
+      () => useDb(dbAtom, undefined),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return <Wrapper client={errorClient}>{children}</Wrapper>;
+        },
+      }
+    );
+
+    await waitFor(() => {
+      return result.current.state === "ERROR";
+    });
+
+    const stateChanges = result.all.length;
+    const times = ServerData.times;
+
+    jest.advanceTimersByTime(3000 * 60);
+
+    await waitForNextUpdate({
+      timeout: 3000 * 60 + 250,
+    });
+
+    expect(result.current.state).toBe("ERROR");
+    expect(result.all.length).toBe(stateChanges + 1);
+    expect(ServerData.times).toBe(times + 4);
+
+    unmount();
+    jest.advanceTimersByTime(3000 * 60);
+
+    jest.useRealTimers();
+
+    await new Promise((r) => setTimeout(r, 200));
+    expect(ServerData.times).toBe(times + 4 + 4);
+
+    jest.useFakeTimers();
+    jest.advanceTimersByTime(3000 * 60);
+
+    jest.useRealTimers();
+
+    await new Promise((r) => setTimeout(r, 200));
+
+    expect(ServerData.times).toBe(times + 4 + 4);
+  });
 
   test("Success: Options provided in Context should overwrite the default Config", async () => {
     const dbAtom = db((supabase) => {

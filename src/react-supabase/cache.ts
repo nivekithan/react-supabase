@@ -26,7 +26,7 @@ export class Cache {
     if (Cache.cache[hash]) {
       return Cache.cache[hash].result as DbResult<T>;
     } else {
-      throw new Error("There is no cache with hash: " + hash);
+      throw new Error("getCache: There is no cache with hash: " + hash);
     }
   }
 
@@ -36,7 +36,7 @@ export class Cache {
     options: SetCacheOptions = {}
   ) {
     if (!Cache.cache[hash]) {
-      throw new Error("There is no cache with the hash value " + hash);
+      throw new Error("setCache: There is no cache with the hash: " + hash);
     } else {
       const { backgroundFetch = false } = options;
 
