@@ -68,6 +68,8 @@ describe("Flow of requests", () => {
       }
     );
 
+    await waitForNextUpdate();
+
     if (result.current.state !== "LOADING") {
       expect(result.current.state).toBe("SUCCESS");
       expect(result.current.data).toBe(successResult);
@@ -104,6 +106,8 @@ describe("Flow of requests", () => {
         },
       }
     );
+
+    await waitForNextUpdate();
 
     if (result.current.state !== "LOADING") {
       expect(result.all).toHaveLength(3);

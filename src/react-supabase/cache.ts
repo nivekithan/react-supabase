@@ -7,7 +7,9 @@ type CacheHash = {
   subscribers: {
     [key: string]: (cache: DbResult<unknown>) => void;
   };
-  stopFetching: () => void;
+  stopRefetching: () => void;
+  timeToken: NodeJS.Timeout | undefined;
+  startRefetching: (immediate?: boolean) => void;
 };
 
 type SetCacheOptions = {
@@ -50,40 +52,15 @@ export class Cache {
   static subscribe<T>(
     hash: string,
     callOnChange: (cache: DbResult<T>) => void,
-    supabaseBuild: SupabaseBuild,
-    options: {
-      unique: string;
-      interval: number;
-      backgroundFetch: boolean;
-      retry: number;
-    }
+    unique: string
   ) {
     if (Cache.cache[hash]) {
-      Cache.cache[hash].subscribers[options.unique] = callOnChange as (
+      Cache.cache[hash].subscribers[unique] = callOnChange as (
         cache: DbResult<unknown>
       ) => void;
+      Cache.cache[hash].startRefetching();
     } else {
-      const { interval, unique, backgroundFetch, retry } = options;
-      Cache.cache[hash] = {
-        result: {
-          data: undefined,
-          error: undefined,
-          state: "STALE",
-        },
-        subscribers: {
-          [unique]: callOnChange as (cache: DbResult<unknown>) => void,
-        },
-      } as CacheHash;
-
-      const timeToken = fetchDataWithInterval(hash, supabaseBuild, {
-        interval,
-        backgroundFetch,
-        retry,
-      });
-
-      Cache.cache[hash].stopFetching = () => {
-        clearInterval(timeToken);
-      };
+      throw new Error("There is no cache with hash: " + hash);
     }
     return () => {
       /**
@@ -97,13 +74,75 @@ export class Cache {
        * Thats why optional chaining
        */
 
-      delete Cache.cache[hash]?.subscribers[options.unique];
+      delete Cache.cache[hash]?.subscribers[unique];
     };
+  }
+
+  static createNewCache(
+    hash: string,
+    supabaseBuild: SupabaseBuild,
+    options: {
+      interval: number;
+      backgroundFetch: boolean;
+      retry: number;
+    }
+  ) {
+    if (Cache.cache[hash]) {
+      throw new Error("There is already a cache with hash: " + hash);
+    } else {
+      const { backgroundFetch, interval, retry } = options;
+      Cache.cache[hash] = {
+        result: {
+          data: undefined,
+          error: undefined,
+          state: "STALE",
+        },
+
+        subscribers: {},
+
+        timeToken: undefined,
+
+        stopRefetching: () => {
+          /**
+           * If there is not a timeToken then we wont clear it
+           */
+
+          const timeToken = Cache.cache[hash]?.timeToken;
+
+          if (timeToken) {
+            clearInterval(timeToken);
+          }
+
+          return;
+        },
+
+        startRefetching: (immediate?: boolean) => {
+          /**
+           * If there is already timeToken then refetching is already in progress
+           * so there is no need to start a new one
+           */
+
+          if (Cache.cache[hash]?.timeToken) {
+            return;
+          }
+          if (immediate) {
+            fetchData(hash, supabaseBuild, { retry, backgroundFetch });
+          }
+          const timeToken = fetchDataWithInterval(hash, supabaseBuild, {
+            backgroundFetch,
+            interval,
+            retry,
+          });
+
+          Cache.cache[hash].timeToken = timeToken;
+        },
+      };
+    }
   }
 
   static reset() {
     Object.values(Cache.cache).forEach((cache) => {
-      cache.stopFetching();
+      cache.stopRefetching();
     });
 
     Cache.cache = {};

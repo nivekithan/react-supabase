@@ -66,11 +66,12 @@ export const useDb = <data, props>(
     try {
       return Cache.getCache<data>(hash);
     } catch (err) {
-      return {
-        data: undefined,
-        error: undefined,
-        state: "STALE",
-      } as DbResult<data>;
+      Cache.createNewCache(hash, supabaseBuild, {
+        interval: finalOptions.cacheTime,
+        backgroundFetch: finalOptions.backgroundFetch,
+        retry: finalOptions.retry,
+      });
+      return Cache.getCache<data>(hash);
     }
   };
 
@@ -79,12 +80,7 @@ export const useDb = <data, props>(
   useEffect(() => {
     let isMounted = true;
 
-    const {
-      backgroundFetch,
-      cacheTime,
-      retry,
-      shouldComponentUpdate,
-    } = finalOptions;
+    const { shouldComponentUpdate } = finalOptions;
 
     const unSubscribe = Cache.subscribe<data>(
       hash,
@@ -93,13 +89,7 @@ export const useDb = <data, props>(
           isMounted &&
           setResultData(cache);
       },
-      supabaseBuild,
-      {
-        interval: cacheTime,
-        unique: key,
-        backgroundFetch,
-        retry,
-      }
+      key
     );
 
     return () => {
