@@ -21,6 +21,7 @@ export type SupabaseOptions = {
     curr: DbResult<unknown>,
     next: DbResult<unknown>
   ) => boolean;
+  retry?: number;
 };
 
 const supabase = React.createContext<PostgrestClient | undefined>(undefined);
