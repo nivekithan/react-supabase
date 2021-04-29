@@ -135,15 +135,18 @@ describe("Supabase options", () => {
       return supabase.from("users").select("name").get();
     });
 
-    const { result, waitFor, waitForNextUpdate, unmount } = renderHook(
-      () => useDb(dbAtom, undefined),
-      {
-        // eslint-disable-next-line react/prop-types, react/display-name
-        wrapper: ({ children }) => {
-          return <Wrapper client={successClient}>{children}</Wrapper>;
-        },
-      }
-    );
+    const {
+      result,
+      waitFor,
+      waitForNextUpdate,
+      unmount,
+      rerender,
+    } = renderHook(() => useDb(dbAtom, undefined), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return <Wrapper client={successClient}>{children}</Wrapper>;
+      },
+    });
     await waitFor(() => {
       return result.current.state === "SUCCESS";
     });
@@ -179,6 +182,18 @@ describe("Supabase options", () => {
     jest.useRealTimers();
     await new Promise((r) => setTimeout(r, 200));
     expect(ServerData.times).toBe(3);
+
+    jest.useFakeTimers();
+
+    jest.advanceTimersByTime(3000 * 60 * 10);
+
+    rerender();
+
+    await waitFor(() => {
+      return result.current.state === "SUCCESS";
+    });
+
+    expect(ServerData.times).toBe(4);
   });
 
   test("Error: Behavior of default supabaseOptions", async () => {
@@ -187,15 +202,18 @@ describe("Supabase options", () => {
       return supabase.from("users").select("name").get();
     });
 
-    const { result, waitFor, waitForNextUpdate, unmount } = renderHook(
-      () => useDb(dbAtom, undefined),
-      {
-        // eslint-disable-next-line react/prop-types, react/display-name
-        wrapper: ({ children }) => {
-          return <Wrapper client={errorClient}>{children}</Wrapper>;
-        },
-      }
-    );
+    const {
+      result,
+      waitFor,
+      waitForNextUpdate,
+      unmount,
+      rerender,
+    } = renderHook(() => useDb(dbAtom, undefined), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return <Wrapper client={errorClient}>{children}</Wrapper>;
+      },
+    });
 
     await waitFor(() => {
       return result.current.state === "ERROR";
@@ -230,6 +248,18 @@ describe("Supabase options", () => {
     await new Promise((r) => setTimeout(r, 200));
 
     expect(ServerData.times).toBe(times + 4 + 4);
+
+    jest.useFakeTimers();
+
+    jest.advanceTimersByTime(3000 * 60 * 10);
+
+    rerender();
+
+    await waitFor(() => {
+      return result.current.state === "ERROR";
+    });
+
+    expect(ServerData.times).toBe(times + 4 + 4 + 4);
   });
 
   test("Success: Options provided in Context should overwrite the default Config", async () => {
@@ -1117,5 +1147,93 @@ describe("Feature: Garbage collection", () => {
     await new Promise((r) => setTimeout(r, 200));
 
     expect(ServerData.times).toBe(serverCalls);
+  });
+
+  test("Success: The cache should be cleared based on clearCacheTimeout if there are no subscribers", async () => {
+    const dbAtom = db<any, any>((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
+
+    const { result, waitFor, unmount, rerender } = renderHook(
+      () => useDb(dbAtom, undefined),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              client={successClient}
+              options={{ retry: 0, clearCacheTimeout: 200 }}
+            >
+              {children}
+            </Wrapper>
+          );
+        },
+      }
+    );
+
+    await waitFor(() => {
+      return result.current.state === "SUCCESS";
+    });
+    const serverCalls = ServerData.times;
+
+    unmount();
+
+    rerender();
+
+    unmount();
+
+    await new Promise((r) => setTimeout(r, 250));
+
+    rerender();
+
+    await waitFor(() => {
+      return result.current.state === "SUCCESS";
+    });
+
+    expect(ServerData.times).toBe(serverCalls + 1);
+  });
+
+  test("Error: The cache should be cleared based on clearCacheTimeout if there are no subscribers", async () => {
+    const dbAtom = db<any, any>((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
+
+    const { result, waitFor, unmount, rerender } = renderHook(
+      () => useDb(dbAtom, undefined),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              client={errorClient}
+              options={{ retry: 0, clearCacheTimeout: 200 }}
+            >
+              {children}
+            </Wrapper>
+          );
+        },
+      }
+    );
+
+    await waitFor(() => {
+      return result.current.state === "ERROR";
+    });
+    const serverCalls = ServerData.times;
+
+    unmount();
+
+    rerender();
+
+    unmount();
+
+    await new Promise((r) => setTimeout(r, 250));
+
+    rerender();
+
+    await waitFor(() => {
+      return result.current.state === "ERROR";
+    });
+
+    expect(ServerData.times).toBe(serverCalls + 1);
   });
 });

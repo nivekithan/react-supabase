@@ -9,8 +9,10 @@ type CacheHash = {
   };
   stopRefetching: () => void;
   startRefetching: (immediate?: boolean) => void;
+  clearCache: () => void;
   refetchingTimeInterval: NodeJS.Timeout | undefined;
   stopRefetchingTimeout: NodeJS.Timeout | undefined;
+  clearCacheTimeout: NodeJS.Timeout | undefined;
 };
 
 type SetCacheOptions = {
@@ -36,7 +38,7 @@ export class Cache {
     options: SetCacheOptions = {}
   ) {
     if (!Cache.cache[hash]) {
-      return;
+      throw new Error("There is no cache with hash: " + hash);
     } else {
       const { backgroundFetch = false } = options;
 
@@ -56,6 +58,7 @@ export class Cache {
     options: {
       unique: string;
       stopRefetchTimeout: number;
+      clearCacheTimeout: number;
     }
   ) {
     if (Cache.cache[hash]) {
@@ -63,6 +66,13 @@ export class Cache {
       if (stopRefetchTimeout) {
         clearTimeout(stopRefetchTimeout);
         Cache.cache[hash].stopRefetchingTimeout = undefined;
+      }
+
+      const clearCacheTimeout = Cache.cache[hash].clearCacheTimeout;
+
+      if (clearCacheTimeout) {
+        clearTimeout(clearCacheTimeout);
+        Cache.cache[hash].clearCacheTimeout = undefined;
       }
 
       Cache.cache[hash].subscribers[options.unique] = callOnChange as (
@@ -81,16 +91,32 @@ export class Cache {
        *
        * Error: Uncaught [TypeError: Cannot read property 'subscribers' of undefined]
        *
-       * Thats why optional chaining
+       * Thats why we will check if cache with hash exists
        */
       if (Cache.cache[hash]) {
         delete Cache.cache[hash].subscribers[options.unique];
 
         if (Object.values(Cache.cache[hash].subscribers).length === 0) {
-          const timeToken = setTimeout(() => {
+          /**
+           * If there are no subscribers for stopRefetchTimeout then
+           * we wont refetch the requests automatically
+           */
+
+          const stopRefetchingTimeToken = setTimeout(() => {
             Cache.cache[hash]?.stopRefetching();
           }, options.stopRefetchTimeout);
-          Cache.cache[hash].stopRefetchingTimeout = timeToken;
+
+          Cache.cache[hash].stopRefetchingTimeout = stopRefetchingTimeToken;
+
+          /**
+           * If there are no subscribers for clearCacheTimeout then
+           * we will remove the cache itself
+           */
+
+          const clearCacheTimeout = setTimeout(() => {
+            Cache.cache[hash]?.clearCache();
+          }, options.clearCacheTimeout);
+          Cache.cache[hash].clearCacheTimeout = clearCacheTimeout;
         }
       }
     };
@@ -120,6 +146,7 @@ export class Cache {
 
         refetchingTimeInterval: undefined,
         stopRefetchingTimeout: undefined,
+        clearCacheTimeout: undefined,
 
         stopRefetching: () => {
           /**
@@ -156,6 +183,20 @@ export class Cache {
 
           Cache.cache[hash].refetchingTimeInterval = timeToken;
         },
+
+        clearCache: () => {
+          Cache.cache[hash]?.stopRefetching();
+          const stopRefetchingTimeout =
+            Cache.cache[hash]?.stopRefetchingTimeout;
+
+          if (stopRefetchingTimeout) {
+            clearTimeout(stopRefetchingTimeout);
+            Cache.cache[hash].stopRefetchingTimeout = undefined;
+          }
+          if (Cache.cache[hash]) {
+            delete Cache.cache[hash];
+          }
+        },
       };
     }
   }
@@ -189,19 +230,23 @@ const fetchDataWithInterval = (
   };
 
   const timeToken = setInterval(() => {
-    Cache.setCache(
-      hash,
-      {
-        data: undefined,
-        error: undefined,
-        state: "STALE",
-      },
-      {
-        backgroundFetch,
+    try {
+      Cache.setCache(
+        hash,
+        {
+          data: undefined,
+          error: undefined,
+          state: "STALE",
+        },
+        {
+          backgroundFetch,
+        }
+      );
+      if (cache().state === "STALE") {
+        fetchData(hash, supabaseBuild, { backgroundFetch, retry });
       }
-    );
-    if (cache().state === "STALE") {
-      fetchData(hash, supabaseBuild, { backgroundFetch, retry });
+    } catch (err) {
+      return;
     }
   }, interval);
 
@@ -218,50 +263,54 @@ export const fetchData = async (
   supabaseBuild: SupabaseBuild,
   options: FetchDataOptions
 ) => {
-  const { backgroundFetch, retry } = options;
-  Cache.setCache(
-    hash,
-    {
-      state: "LOADING",
-      data: undefined,
-      error: undefined,
-    },
-    {
-      backgroundFetch,
-    }
-  );
-  let i = 0;
-  let dbResult: DbResult<unknown> = {
-    state: "STALE",
-    error: undefined,
-    data: undefined,
-  };
-
-  do {
-    const result = await fetch(supabaseBuild.url.toString(), {
-      headers: supabaseBuild.headers,
-      method: supabaseBuild.method,
-    });
-    if (result.ok) {
-      dbResult = {
-        state: "SUCCESS",
-        data: JSON.parse(await result.text()),
-        error: undefined,
-      };
-      break;
-    } else if (i === retry) {
-      dbResult = {
-        state: "ERROR",
+  try {
+    const { backgroundFetch, retry } = options;
+    Cache.setCache(
+      hash,
+      {
+        state: "LOADING",
         data: undefined,
-        error: await result.json(),
-      };
-      break;
-    } else {
-      i++;
-    }
-  } while (i < retry + 1);
+        error: undefined,
+      },
+      {
+        backgroundFetch,
+      }
+    );
+    let i = 0;
+    let dbResult: DbResult<unknown> = {
+      state: "STALE",
+      error: undefined,
+      data: undefined,
+    };
 
-  Cache.setCache(hash, dbResult, {
-    backgroundFetch,
-  });
+    do {
+      const result = await fetch(supabaseBuild.url.toString(), {
+        headers: supabaseBuild.headers,
+        method: supabaseBuild.method,
+      });
+      if (result.ok) {
+        dbResult = {
+          state: "SUCCESS",
+          data: JSON.parse(await result.text()),
+          error: undefined,
+        };
+        break;
+      } else if (i === retry) {
+        dbResult = {
+          state: "ERROR",
+          data: undefined,
+          error: await result.json(),
+        };
+        break;
+      } else {
+        i++;
+      }
+    } while (i < retry + 1);
+
+    Cache.setCache(hash, dbResult, {
+      backgroundFetch,
+    });
+  } catch (err) {
+    return;
+  }
 };

@@ -22,6 +22,7 @@ export type dbOptions<data> = {
   cacheTime?: number;
   retry?: number;
   stopRefetchTimeout?: number;
+  clearCacheTimeout?: number;
 };
 
 export type DbResult<Data> = {
@@ -50,6 +51,7 @@ export type useDbOptions<data> = {
   cacheTime?: number;
   retry?: number;
   stopRefetchTimeout?: number;
+  clearCacheTimeout?: number;
 };
 
 export const useDb = <data, props>(
@@ -82,7 +84,11 @@ export const useDb = <data, props>(
   useEffect(() => {
     let isMounted = true;
 
-    const { shouldComponentUpdate, stopRefetchTimeout } = finalOptions;
+    const {
+      shouldComponentUpdate,
+      stopRefetchTimeout,
+      clearCacheTimeout,
+    } = finalOptions;
 
     const unSubscribe = Cache.subscribe<data>(
       hash,
@@ -91,7 +97,7 @@ export const useDb = <data, props>(
           isMounted &&
           setResultData(cache);
       },
-      { unique: key, stopRefetchTimeout }
+      { unique: key, stopRefetchTimeout, clearCacheTimeout }
     );
 
     return () => {

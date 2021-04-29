@@ -23,6 +23,7 @@ export type SupabaseOptions = {
   ) => boolean;
   retry?: number;
   stopRefetchTimeout?: number;
+  clearCacheTimeout?: number;
 };
 
 const supabase = React.createContext<PostgrestClient | undefined>(undefined);
