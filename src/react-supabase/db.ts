@@ -21,6 +21,8 @@ export type dbOptions<data> = {
   ) => boolean;
   cacheTime?: number;
   retry?: number;
+  stopRefetchTimeout?: number;
+  clearCacheTimeout?: number;
 };
 
 export type DbResult<Data> = {
@@ -48,6 +50,8 @@ export type useDbOptions<data> = {
   ) => boolean;
   cacheTime?: number;
   retry?: number;
+  stopRefetchTimeout?: number;
+  clearCacheTimeout?: number;
 };
 
 export const useDb = <data, props>(
@@ -66,11 +70,12 @@ export const useDb = <data, props>(
     try {
       return Cache.getCache<data>(hash);
     } catch (err) {
-      return {
-        data: undefined,
-        error: undefined,
-        state: "STALE",
-      } as DbResult<data>;
+      Cache.createNewCache(hash, supabaseBuild, {
+        interval: finalOptions.cacheTime,
+        backgroundFetch: finalOptions.backgroundFetch,
+        retry: finalOptions.retry,
+      });
+      return Cache.getCache<data>(hash);
     }
   };
 
@@ -80,10 +85,9 @@ export const useDb = <data, props>(
     let isMounted = true;
 
     const {
-      backgroundFetch,
-      cacheTime,
-      retry,
       shouldComponentUpdate,
+      stopRefetchTimeout,
+      clearCacheTimeout,
     } = finalOptions;
 
     const unSubscribe = Cache.subscribe<data>(
@@ -93,13 +97,7 @@ export const useDb = <data, props>(
           isMounted &&
           setResultData(cache);
       },
-      supabaseBuild,
-      {
-        interval: cacheTime,
-        unique: key,
-        backgroundFetch,
-        retry,
-      }
+      { unique: key, stopRefetchTimeout, clearCacheTimeout }
     );
 
     return () => {

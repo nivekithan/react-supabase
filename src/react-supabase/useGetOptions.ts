@@ -3,13 +3,15 @@ import { useSupabaseOptions } from "./context";
 import type { dbOptions, DbResult, useDbOptions } from "./db";
 
 type config<data> = {
-  cacheTime: number;
   backgroundFetch: boolean;
   shouldComponentUpdate: (
     curr: DbResult<data>,
     next: DbResult<data>
   ) => boolean;
   retry: number;
+  cacheTime: number;
+  stopRefetchTimeout: number;
+  clearCacheTimeout: number;
 };
 
 const defaultConfig = {
@@ -17,6 +19,8 @@ const defaultConfig = {
   backgroundFetch: true,
   shouldComponentUpdate: () => true,
   retry: 3,
+  stopRefetchTimeout: 3000 * 60,
+  clearCacheTimeout: 3000 * 60 * 10,
 };
 
 export const useGetOptions = <data>(
