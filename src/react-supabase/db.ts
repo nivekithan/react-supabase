@@ -1,39 +1,25 @@
 import { PostgrestClient } from "../postgrest";
 import { SupabaseBuild } from "../postgrest/lib/types";
-import { useSupabase } from "./context";
+import { SupabaseOptions, useSupabase } from "./context";
 import { Key } from "./key";
 import { useEffect, useRef, useState } from "react";
 import { stableStringify } from "./utils";
 import { Cache, fetchData } from "./cache";
 import { useGetOptions } from "./useGetOptions";
 
+type CreateUrl<props> = props extends undefined
+  ? (supabase: PostgrestClient) => SupabaseBuild
+  : (supabase: PostgrestClient, para: props) => SupabaseBuild;
+
 type DbContext<data, props> = {
-  createUrl: (supabase: PostgrestClient, para: props) => SupabaseBuild;
+  createUrl: CreateUrl<props>;
   id: Key;
-  options: dbOptions<data>;
-};
-
-export type dbOptions<data> = {
-  backgroundFetch?: boolean;
-  shouldComponentUpdate?: (
-    curr: DbResult<data>,
-    next: DbResult<data>
-  ) => boolean;
-  cacheTime?: number;
-  retry?: number;
-  stopRefetchTimeout?: number;
-  clearCacheTimeout?: number;
-};
-
-export type DbResult<Data> = {
-  state: "LOADING" | "ERROR" | "SUCCESS" | "STALE";
-  data: Data | undefined;
-  error: Error | undefined;
+  options: SupabaseOptions<data>;
 };
 
 export const db = <data, props>(
-  createUrl: (supabase: PostgrestClient, para: props) => SupabaseBuild,
-  options: dbOptions<data> = {}
+  createUrl: CreateUrl<props>,
+  options: SupabaseOptions<data> = {}
 ): DbContext<data, props> => {
   return {
     createUrl,
@@ -42,28 +28,59 @@ export const db = <data, props>(
   };
 };
 
-export type useDbOptions<data> = {
-  backgroundFetch?: boolean;
-  shouldComponentUpdate?: (
-    curr: DbResult<data>,
-    next: DbResult<data>
-  ) => boolean;
-  cacheTime?: number;
-  retry?: number;
-  stopRefetchTimeout?: number;
-  clearCacheTimeout?: number;
-};
+export type DbResult<Data> =
+  | {
+      state: "SUCCESS";
+      data: Data;
+      error: undefined;
+    }
+  | {
+      state: "ERROR";
+      data: undefined;
+      error: Error;
+    }
+  | {
+      state: "LOADING" | "STALE";
+      data: undefined;
+      error: undefined;
+    };
 
-export const useDb = <data, props>(
+/**
+ * Overload when the db does not require any arguments
+ */
+
+export function useDb<data>(
+  db: DbContext<data, undefined>,
+  args?: undefined,
+  options?: SupabaseOptions<data>
+): DbResult<data>;
+
+/**
+ * Overload when the db does require arguments of type props
+ */
+export function useDb<data, props>(
   db: DbContext<data, props>,
   args: props,
-  options: useDbOptions<data> = {}
-) => {
-  const supabase = useSupabase();
-  const finalOptions = useGetOptions(db.options, options);
+  options?: SupabaseOptions<data>
+): DbResult<data>;
 
-  const { current: supabaseBuild } = useRef(db.createUrl(supabase, args));
-  const hash = `${db.id}${stableStringify(args)}`;
+export function useDb<data, props>(
+  db: DbContext<data, props>,
+  args?: props,
+  options?: SupabaseOptions<data>
+): DbResult<data> {
+  const supabase = useSupabase();
+  const finalOptions = useGetOptions(db.options, options || {});
+
+  const { current: supabaseBuild } = useRef(
+    typeof args !== "undefined"
+      ? db.createUrl(supabase, args as props)
+      : (db.createUrl as CreateUrl<undefined>)(supabase)
+  );
+
+  const hash = `${db.id}${stableStringify(
+    typeof args !== "undefined" ? args : undefined
+  )}`;
   const { current: key } = useRef(Key.getUniqueKey());
 
   const cache = () => {
@@ -122,4 +139,4 @@ export const useDb = <data, props>(
   }, []);
 
   return resultData;
-};
+}

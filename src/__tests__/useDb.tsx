@@ -48,7 +48,7 @@ const errorToSuccessClient = createClient({
 
 describe("Flow of requests", () => {
   test("Success: Request is success", async () => {
-    const dbAtom = db((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -87,7 +87,7 @@ describe("Flow of requests", () => {
   });
 
   test("Error: Request is not success", async () => {
-    const dbAtom = db((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -131,7 +131,7 @@ describe("Supabase options", () => {
   test("Success: Behavior of default supabaseOptions", async () => {
     jest.useFakeTimers();
 
-    const dbAtom = db((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -198,7 +198,7 @@ describe("Supabase options", () => {
 
   test("Error: Behavior of default supabaseOptions", async () => {
     jest.useFakeTimers();
-    const dbAtom = db((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -263,7 +263,7 @@ describe("Supabase options", () => {
   });
 
   test("Success: Options provided in Context should overwrite the default Config", async () => {
-    const dbAtom = db((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -292,14 +292,13 @@ describe("Supabase options", () => {
     });
 
     const stateChanges = result.all.length;
-
     await waitForNextUpdate();
 
     expect(result.current.state).toBe("SUCCESS");
     expect(result.all.length).toBe(stateChanges + 1);
   });
   test("Error: Options provided in Context should overwrite the default Config", async () => {
-    const dbAtom = db((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -336,7 +335,7 @@ describe("Supabase options", () => {
   });
 
   test("Success : Option provided in db should overwrite default and context options", async () => {
-    const dbAtom = db(
+    const dbAtom = db<unknown, undefined>(
       (supabase) => {
         return supabase.from("users").select("name").get();
       },
@@ -375,7 +374,7 @@ describe("Supabase options", () => {
   });
 
   test("Error: Options provided in db should overwrite the default Config and context", async () => {
-    const dbAtom = db(
+    const dbAtom = db<unknown, undefined>(
       (supabase) => {
         return supabase.from("users").select("name").get();
       },
@@ -415,7 +414,7 @@ describe("Supabase options", () => {
   });
 
   test("Success : Option provided in useDb should overwrite default, context options and dbOptions", async () => {
-    const dbAtom = db(
+    const dbAtom = db<unknown, undefined>(
       (supabase) => {
         return supabase.from("users").select("name").get();
       },
@@ -454,7 +453,7 @@ describe("Supabase options", () => {
   });
 
   test("Error: Options provided in db should overwrite the default Config ,context and db options", async () => {
-    const dbAtom = db(
+    const dbAtom = db<unknown, undefined>(
       (supabase) => {
         return supabase.from("users").select("name").get();
       },
@@ -496,7 +495,7 @@ describe("Supabase options", () => {
 
 describe("Feature: Refetch based on Cache time", () => {
   test("Success: Should refetch the requests based on cache time ", async () => {
-    const dbAtom = db((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -531,7 +530,7 @@ describe("Feature: Refetch based on Cache time", () => {
   });
 
   test("Error: Should refetch the requests based on cache time", async () => {
-    const dbAtom = db((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -567,7 +566,7 @@ describe("Feature: Refetch based on Cache time", () => {
 });
 describe("Feature: Background fetching", () => {
   test("Success: Refetching request should happen in background", async () => {
-    const dbAtom = db((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -601,7 +600,7 @@ describe("Feature: Background fetching", () => {
   });
 
   test("Error: Refetching request should happen in background", async () => {
-    const dbAtom = db((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -635,7 +634,7 @@ describe("Feature: Background fetching", () => {
   });
 
   test("Success: If background refetching is disabled then state change should be reflected", async () => {
-    const dbAtom = db((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -672,7 +671,7 @@ describe("Feature: Background fetching", () => {
   });
 
   test("Error: If background refetching is disabled then state change should be reflected", async () => {
-    const dbAtom = db((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -711,7 +710,7 @@ describe("Feature: Background fetching", () => {
 
 describe("Feature: Cache", () => {
   test("Success: If hash is same no additional requests should be made to server", async () => {
-    const dbAtom = db((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -745,7 +744,7 @@ describe("Feature: Cache", () => {
   });
 
   test("Error: If hash is same no additional requests should be made to server", async () => {
-    const dbAtom = db((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -780,14 +779,14 @@ describe("Feature: Cache", () => {
   });
 
   test("Success: If db is same but hash is different there should be additional request which then should be cached", async () => {
-    const dbAtom = db((supabase) => {
+    const dbAtom = db<unknown, { name: string }>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
     const { result, waitFor } = renderHook(
       () => ({
-        first: useDb(dbAtom, { name: "name", secondName: "secondName" }),
-        second: useDb(dbAtom, undefined),
+        first: useDb(dbAtom, { name: "name" }),
+        second: useDb(dbAtom, { name: "someother name" }),
       }),
       {
         // eslint-disable-next-line react/prop-types, react/display-name
@@ -813,14 +812,14 @@ describe("Feature: Cache", () => {
     expect(ServerData.times).toBe(2);
   });
   test("Error: If db is same but hash is different then there should be additional request which then should be cached", async () => {
-    const dbAtom = db((supabase) => {
+    const dbAtom = db<unknown, { name: string }>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
     const { result, waitFor } = renderHook(
       () => ({
-        first: useDb(dbAtom, undefined),
-        second: useDb(dbAtom, { name: "name", secondName: "secondName" }),
+        first: useDb(dbAtom, { name: "someother" }),
+        second: useDb(dbAtom, { name: "name" }),
       }),
       {
         // eslint-disable-next-line react/prop-types, react/display-name
@@ -847,10 +846,10 @@ describe("Feature: Cache", () => {
   });
 
   test("Success: Different db should not access each other cache", async () => {
-    const dbAtom1 = db((supabase) => {
+    const dbAtom1 = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
-    const dbAtom2 = db((supabase) => {
+    const dbAtom2 = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -886,11 +885,11 @@ describe("Feature: Cache", () => {
     expect(ServerData.times).toBe(2);
   });
 
-  test("Error: Different db should not access each other cache", async () => {
-    const dbAtom1 = db((supabase) => {
+  test("Error: Different db<unknown, undefined> should not access each other cache", async () => {
+    const dbAtom1 = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
-    const dbAtom2 = db((supabase) => {
+    const dbAtom2 = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -929,7 +928,7 @@ describe("Feature: Cache", () => {
 
 describe("Feature: ShouldComponentUpdate", () => {
   test("Success: testing ShouldComponentUpdate", async () => {
-    const dbAtom = db<any, any>(
+    const dbAtom = db<unknown, undefined>(
       (supabase) => {
         return supabase.from("users").select("name").get();
       },
@@ -958,7 +957,7 @@ describe("Feature: ShouldComponentUpdate", () => {
     expect(result.all.length).toBe(2);
   });
   test("Error: testing ShouldComponentUpdate", async () => {
-    const dbAtom = db<any, any>(
+    const dbAtom = db<unknown, undefined>(
       (supabase) => {
         return supabase.from("users").select("name").get();
       },
@@ -992,7 +991,7 @@ describe("Feature: Refetching error request", () => {
   test("ErrorToSuccess : The first response is success ", async () => {
     setSuccessOnTime(1);
 
-    const dbAtom = db<any, any>((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -1013,7 +1012,7 @@ describe("Feature: Refetching error request", () => {
   test("ErrorToSuccess: Success on last try", async () => {
     setSuccessOnTime(4);
 
-    const dbAtom = db<any, any>((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -1034,7 +1033,7 @@ describe("Feature: Refetching error request", () => {
   test("ErrorToSuccess: Success on in between try", async () => {
     setSuccessOnTime(3);
 
-    const dbAtom = db<any, any>((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -1053,7 +1052,7 @@ describe("Feature: Refetching error request", () => {
   });
 
   test("ErrorToSuccess: Never a success response", async () => {
-    const dbAtom = db<any, any>((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -1074,7 +1073,7 @@ describe("Feature: Refetching error request", () => {
 
 describe("Feature: Garbage collection", () => {
   test("Success: The refetching request based on cache time should stopped if there are no subscribers for stopRefetchTimeout", async () => {
-    const dbAtom = db<any, any>((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -1112,7 +1111,7 @@ describe("Feature: Garbage collection", () => {
   });
 
   test("Error: The refetching request based on cache time should stopped if there are no subscribers for stopRefetchTimeout", async () => {
-    const dbAtom = db<any, any>((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -1150,7 +1149,7 @@ describe("Feature: Garbage collection", () => {
   });
 
   test("Success: The cache should be cleared based on clearCacheTimeout if there are no subscribers", async () => {
-    const dbAtom = db<any, any>((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
@@ -1194,7 +1193,7 @@ describe("Feature: Garbage collection", () => {
   });
 
   test("Error: The cache should be cleared based on clearCacheTimeout if there are no subscribers", async () => {
-    const dbAtom = db<any, any>((supabase) => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
