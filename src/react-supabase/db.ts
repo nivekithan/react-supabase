@@ -2,8 +2,8 @@ import { PostgrestClient } from "../postgrest";
 import { SupabaseBuild } from "../postgrest/lib/types";
 import { SupabaseOptions, useSupabase } from "./context";
 import { Key } from "./key";
-import { useEffect, useRef, useState } from "react";
-import { stableStringify } from "./utils";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { hash } from "./hash";
 import { Cache, fetchData } from "./cache";
 import { useGetOptions } from "./useGetOptions";
 
@@ -45,6 +45,8 @@ export type DbResult<Data> =
       error: undefined;
     };
 
+export type TResult<data> = DbResult<data> & { hash: string };
+
 /**
  * Overload when the db does not require any arguments
  */
@@ -53,7 +55,7 @@ export function useDb<data>(
   db: DbContext<data, undefined>,
   args?: undefined,
   options?: SupabaseOptions<data>
-): DbResult<data>;
+): TResult<data>;
 
 /**
  * Overload when the db does require arguments of type props
@@ -62,7 +64,7 @@ export function useDb<data, props>(
   db: DbContext<data, props>,
   args: props,
   options?: SupabaseOptions<data>
-): DbResult<data>;
+): TResult<data>;
 
 export function useDb<data, props>(
   db: DbContext<data, props>,
@@ -78,25 +80,33 @@ export function useDb<data, props>(
       : (db.createUrl as CreateUrl<undefined>)(supabase)
   );
 
-  const hash = `${db.id}${stableStringify(
-    typeof args !== "undefined" ? args : undefined
-  )}`;
+  const hashString = `ID_${db.id}_ID_${
+    hash.isHashFunProvided
+      ? hash.providedHashFun(args)
+      : hash.defaultHashFun(args)
+  }`;
   const { current: key } = useRef(Key.getUniqueKey());
 
   const cache = () => {
     try {
-      return Cache.getCache<data>(hash);
+      return Cache.getCache<data>(hashString);
     } catch (err) {
-      Cache.createNewCache(hash, supabaseBuild, {
+      Cache.createNewCache(hashString, supabaseBuild, {
         interval: finalOptions.cacheTime,
         backgroundFetch: finalOptions.backgroundFetch,
         retry: finalOptions.retry,
       });
-      return Cache.getCache<data>(hash);
+      return Cache.getCache<data>(hashString);
     }
   };
 
-  const [resultData, setResultData] = useState<DbResult<data>>(cache());
+  const [cacheData, setCacheData] = useState<DbResult<data>>(cache());
+  const result = useMemo(() => {
+    return {
+      ...cacheData,
+      hash: hashString,
+    };
+  }, [cacheData, hashString]);
 
   useEffect(() => {
     let isMounted = true;
@@ -108,11 +118,11 @@ export function useDb<data, props>(
     } = finalOptions;
 
     const unSubscribe = Cache.subscribe<data>(
-      hash,
+      hashString,
       (cache) => {
-        shouldComponentUpdate(resultData, cache) &&
+        shouldComponentUpdate(cacheData, cache) &&
           isMounted &&
-          setResultData(cache);
+          setCacheData(cache);
       },
       { unique: key, stopRefetchTimeout, clearCacheTimeout }
     );
@@ -121,7 +131,7 @@ export function useDb<data, props>(
       isMounted = false;
       unSubscribe();
     };
-  }, [supabaseBuild, hash, setResultData, key, resultData, finalOptions]);
+  }, [supabaseBuild, hashString, setCacheData, key, cacheData, finalOptions]);
 
   /**
    * SetInterval delays the execution functions by the specified time so
@@ -129,14 +139,14 @@ export function useDb<data, props>(
    */
 
   useEffect(() => {
-    const cache = Cache.getCache(hash);
+    const cache = Cache.getCache(hashString);
 
     if (cache.state === "STALE") {
-      fetchData(hash, supabaseBuild, { retry: finalOptions.retry });
+      fetchData(hashString, supabaseBuild, { retry: finalOptions.retry });
     }
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return resultData;
+  return result;
 }

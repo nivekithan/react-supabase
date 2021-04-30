@@ -18,6 +18,7 @@ import {
 import { Cache } from "@src/react-supabase/cache";
 import { Key } from "@src/react-supabase/key";
 import { createClient } from "@src/react-supabase/context";
+import { setHashFunction } from "@src/react-supabase/hash";
 
 beforeAll(() => server.listen());
 
@@ -1234,5 +1235,86 @@ describe("Feature: Garbage collection", () => {
     });
 
     expect(ServerData.times).toBe(serverCalls + 1);
+  });
+});
+
+describe("Feature: Override default Hash function", () => {
+  test("Success: Hashing a function", () => {
+    setHashFunction((provided) => {
+      return (value) => {
+        if (typeof value === "object" && !Array.isArray(value) && !!value) {
+          return value.key;
+        } else {
+          return provided(value);
+        }
+      };
+    });
+
+    const dbAtom = db<unknown, { key: number; someFun: () => string }>(
+      (supabase) => {
+        return supabase.from("users").select("name").get();
+      }
+    );
+
+    const { result } = renderHook(
+      () => ({
+        first: useDb(dbAtom, { key: 1, someFun: () => "some" }),
+        second: useDb(dbAtom, { someFun: () => "some", key: 1 }),
+      }),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              client={successClient}
+              options={{ retry: 0, clearCacheTimeout: 200 }}
+            >
+              {children}
+            </Wrapper>
+          );
+        },
+      }
+    );
+
+    expect(result.current.first.hash).toBe(result.current.second.hash);
+  });
+  test("Error: Hashing a function", () => {
+    setHashFunction((provided) => {
+      return (value) => {
+        if (typeof value === "object" && !Array.isArray(value) && !!value) {
+          return value.key;
+        } else {
+          return provided(value);
+        }
+      };
+    });
+
+    const dbAtom = db<unknown, { key: number; someFun: () => string }>(
+      (supabase) => {
+        return supabase.from("users").select("name").get();
+      }
+    );
+
+    const { result } = renderHook(
+      () => ({
+        first: useDb(dbAtom, { key: 1, someFun: () => "some" }),
+        second: useDb(dbAtom, { someFun: () => "some", key: 1 }),
+      }),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              client={errorClient}
+              options={{ retry: 0, clearCacheTimeout: 200 }}
+            >
+              {children}
+            </Wrapper>
+          );
+        },
+      }
+    );
+
+    expect(result.current.first.hash).toBe(result.current.second.hash);
   });
 });
