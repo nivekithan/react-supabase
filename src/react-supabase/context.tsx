@@ -14,12 +14,12 @@ export const createClient = ({ url, key }: SupabaseConfig) => {
   });
 };
 
-export type SupabaseOptions = {
+export type SupabaseOptions<data> = {
   cacheTime?: number;
   backgroundFetch?: boolean;
   shouldComponentUpdate?: (
-    curr: DbResult<unknown>,
-    next: DbResult<unknown>
+    curr: DbResult<data>,
+    next: DbResult<data>
   ) => boolean;
   retry?: number;
   stopRefetchTimeout?: number;
@@ -27,14 +27,14 @@ export type SupabaseOptions = {
 };
 
 const supabase = React.createContext<PostgrestClient | undefined>(undefined);
-const supabaseOptionsContext = React.createContext<SupabaseOptions | undefined>(
-  undefined
-);
+const supabaseOptionsContext = React.createContext<
+  SupabaseOptions<unknown> | undefined
+>(undefined);
 
 export type SupabaseProviderProps = {
   client: PostgrestClient;
   children: React.ReactNode;
-  options?: SupabaseOptions;
+  options?: SupabaseOptions<unknown>;
 };
 
 export const SupabaseProvider = ({

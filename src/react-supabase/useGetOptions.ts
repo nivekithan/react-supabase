@@ -1,20 +1,7 @@
 import { useMemo } from "react";
-import { useSupabaseOptions } from "./context";
-import type { dbOptions, DbResult, useDbOptions } from "./db";
+import { SupabaseOptions, useSupabaseOptions } from "./context";
 
-type config<data> = {
-  backgroundFetch: boolean;
-  shouldComponentUpdate: (
-    curr: DbResult<data>,
-    next: DbResult<data>
-  ) => boolean;
-  retry: number;
-  cacheTime: number;
-  stopRefetchTimeout: number;
-  clearCacheTimeout: number;
-};
-
-const defaultConfig = {
+const defaultConfig: Required<SupabaseOptions<unknown>> = {
   cacheTime: 3000 * 60,
   backgroundFetch: true,
   shouldComponentUpdate: () => true,
@@ -24,12 +11,12 @@ const defaultConfig = {
 };
 
 export const useGetOptions = <data>(
-  dbOptions: dbOptions<data>,
-  useDbOptions: useDbOptions<data>
+  dbOptions: SupabaseOptions<data>,
+  useDbOptions: SupabaseOptions<data>
 ) => {
   const supabaseOptions = useSupabaseOptions();
 
-  const options = useMemo<config<data>>(() => {
+  const options = useMemo<Required<SupabaseOptions<data>>>(() => {
     const options = { ...defaultConfig };
     Object.assign(options, supabaseOptions, dbOptions, useDbOptions);
     return options;
