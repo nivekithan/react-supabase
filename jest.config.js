@@ -8,4 +8,5 @@ module.exports = {
     "^@src/(.*)$": "<rootDir>/src/$1",
   },
   testPathIgnorePatterns: ["/node_modules/", "<rootDir>/src/__tests__/utils"],
+  setupFilesAfterEnv: ["./src/__tests__/utils/setup.ts"],
 };

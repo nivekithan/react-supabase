@@ -10,7 +10,10 @@ let times = 1;
 const handlers = [
   rest.get(new RegExp(`${url.success}/rest/v1`), (req, res, ctx) => {
     ServerData.add("SUCCESS");
-    return res(ctx.text(JSON.stringify(successResult)), ctx.status(200));
+    return res(
+      ctx.text(JSON.stringify(successResult)),
+      ctx.status(200, "the request is success")
+    );
   }),
 
   rest.get(new RegExp(`${url.error}/rest/v1`), (req, res, ctx) => {
@@ -21,10 +24,16 @@ const handlers = [
   rest.get(new RegExp(`${url.errorToSuccess}/rest/v1`), (req, res, ctx) => {
     ServerData.add("ERROR_TO_SUCCESS");
     if (times === successOnTime) {
-      return res(ctx.text(JSON.stringify(successResult)), ctx.status(200));
+      return res(
+        ctx.text(JSON.stringify(successResult)),
+        ctx.status(200, "the request is success")
+      );
     } else {
       times++;
-      return res(ctx.json(errorResult), ctx.status(500, "error"));
+      return res(
+        ctx.json(errorResult),
+        ctx.status(500, "the request is not success")
+      );
     }
   }),
 ];
