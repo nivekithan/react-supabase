@@ -27,22 +27,37 @@ export const db = <data, props>(
     options,
   };
 };
+export type PostgrestError = {
+  message: string;
+  details: string;
+  hint: string;
+  code: string;
+};
 
-export type DbResult<Data> =
+export type DbResult<data> =
   | {
       state: "SUCCESS";
-      data: Data;
+      data: data[];
       error: undefined;
+      status: number;
+      statusText: string;
+      count: undefined | number;
     }
   | {
       state: "ERROR";
       data: undefined;
-      error: Error;
+      error: PostgrestError;
+      status: number;
+      statusText: string;
+      count: undefined;
     }
   | {
       state: "LOADING" | "STALE";
       data: undefined;
       error: undefined;
+      status: undefined;
+      statusText: undefined;
+      count: undefined;
     };
 
 export type TResult<data> = DbResult<data> & { hash: string };
@@ -74,17 +89,18 @@ export function useDb<data, props>(
   const supabase = useSupabase();
   const finalOptions = useGetOptions(db.options, options || {});
 
-  const { current: supabaseBuild } = useRef(
-    typeof args !== "undefined"
+  const supabaseBuild = useMemo(() => {
+    return typeof args !== "undefined"
       ? db.createUrl(supabase, args as props)
-      : (db.createUrl as CreateUrl<undefined>)(supabase)
-  );
+      : (db.createUrl as CreateUrl<undefined>)(supabase);
+  }, [args, db, supabase]);
 
   const hashString = `ID_${db.id}_ID_${
     hash.isHashFunProvided
       ? hash.providedHashFun(args)
       : hash.defaultHashFun(args)
   }`;
+
   const { current: key } = useRef(Key.getUniqueKey());
 
   const cache = () => {

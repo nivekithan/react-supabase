@@ -1,5 +1,6 @@
 /* eslint-disable react/prop-types */
 import {
+  createClient,
   SupabaseProvider,
   SupabaseProviderProps,
 } from "@src/react-supabase/context";
@@ -24,3 +25,18 @@ export const Wrapper: WrapperComponent<SupabaseProviderProps> = ({
     </SupabaseProvider>
   );
 };
+
+export const successClient = createClient({
+  url: url.success,
+  key: KEY,
+});
+
+export const errorClient = createClient({
+  url: url.error,
+  key: KEY,
+});
+
+export const errorToSuccessClient = createClient({
+  url: url.errorToSuccess,
+  key: KEY,
+});

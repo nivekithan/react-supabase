@@ -1,30 +1,49 @@
+import { PostgrestError } from "@src/react-supabase/db";
 import { rest } from "msw";
 import { setupServer } from "msw/node";
 import { url } from "./utils";
 
-export const successResult = "success";
-export const errorResult = "error";
+export const successResult = ["success"];
+export const errorResult: PostgrestError = {
+  code: "100",
+  details: "Something is wrong",
+  hint: "No hint",
+  message: "This is error",
+};
+
 let successOnTime = 0;
 let times = 1;
 
 const handlers = [
   rest.get(new RegExp(`${url.success}/rest/v1`), (req, res, ctx) => {
     ServerData.add("SUCCESS");
-    return res(ctx.text(JSON.stringify(successResult)), ctx.status(200));
+    return res(
+      ctx.text(JSON.stringify(successResult)),
+      ctx.status(200, "The request is success")
+    );
   }),
 
   rest.get(new RegExp(`${url.error}/rest/v1`), (req, res, ctx) => {
     ServerData.add("ERROR");
-    return res(ctx.json(errorResult), ctx.status(500, "error"));
+    return res(
+      ctx.json(errorResult),
+      ctx.status(500, "The request is not success")
+    );
   }),
 
   rest.get(new RegExp(`${url.errorToSuccess}/rest/v1`), (req, res, ctx) => {
     ServerData.add("ERROR_TO_SUCCESS");
     if (times === successOnTime) {
-      return res(ctx.text(JSON.stringify(successResult)), ctx.status(200));
+      return res(
+        ctx.text(JSON.stringify(successResult)),
+        ctx.status(200, "The request is success")
+      );
     } else {
       times++;
-      return res(ctx.json(errorResult), ctx.status(500, "error"));
+      return res(
+        ctx.json(errorResult),
+        ctx.status(500, "The request is not success")
+      );
     }
   }),
 ];
