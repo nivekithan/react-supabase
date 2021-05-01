@@ -40,8 +40,11 @@ describe("Flow of requests", () => {
 
     if (result.current.state !== "LOADING") {
       expect(result.current.state).toBe("SUCCESS");
-      expect(result.current.data).toBe(successResult);
+      expect(result.current.data).toStrictEqual(successResult);
       expect(result.current.error).toBeUndefined();
+      expect(result.current.status).toBe(200);
+      expect(result.current.statusText).toBe("The request is success");
+      expect(result.current.count).toBeUndefined();
     } else {
       expect(result.all).toHaveLength(2);
       await waitForNextUpdate({
@@ -50,6 +53,9 @@ describe("Flow of requests", () => {
       expect(result.current.state).toBe("SUCCESS");
       expect(result.current.data).toBe(successResult);
       expect(result.current.error).toBeUndefined();
+      expect(result.current.status).toBe(200);
+      expect(result.current.statusText).toBe("The request is success");
+      expect(result.current.count).toBeUndefined();
     }
   });
 
@@ -80,16 +86,23 @@ describe("Flow of requests", () => {
     if (result.current.state !== "LOADING") {
       expect(result.all).toHaveLength(3);
       expect(result.current.state).toBe("ERROR");
-      expect(result.current.error).toBe(errorResult);
+      expect(result.current.error).toStrictEqual(errorResult);
       expect(result.current.data).toBeUndefined();
+      expect(result.current.count).toBeUndefined();
+      expect(result.current.status).toBe(500);
+      expect(result.current.statusText).toBe("The request is not success");
     } else {
       expect(result.all).toHaveLength(2);
       await waitForNextUpdate({
         timeout: 3000,
       });
+      expect(result.all).toHaveLength(3);
       expect(result.current.state).toBe("ERROR");
-      expect(result.current.error).toBe(errorResult);
+      expect(result.current.error).toStrictEqual(errorResult);
       expect(result.current.data).toBeUndefined();
+      expect(result.current.count).toBeUndefined();
+      expect(result.current.status).toBe(500);
+      expect(result.current.statusText).toBe("The request is not success");
     }
   });
 });

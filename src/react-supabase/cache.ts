@@ -136,11 +136,7 @@ export class Cache {
     } else {
       const { backgroundFetch, interval, retry } = options;
       Cache.cache[hash] = {
-        result: {
-          data: undefined,
-          error: undefined,
-          state: "STALE",
-        },
+        result: createSimpleState("STALE"),
 
         subscribers: {},
 
@@ -231,17 +227,9 @@ const fetchDataWithInterval = (
 
   const timeToken = setInterval(() => {
     try {
-      Cache.setCache(
-        hash,
-        {
-          data: undefined,
-          error: undefined,
-          state: "STALE",
-        },
-        {
-          backgroundFetch,
-        }
-      );
+      Cache.setCache(hash, createSimpleState("STALE"), {
+        backgroundFetch,
+      });
       if (cache().state === "STALE") {
         fetchData(hash, supabaseBuild, { backgroundFetch, retry });
       }
@@ -265,34 +253,36 @@ export const fetchData = async (
 ) => {
   try {
     const { backgroundFetch, retry } = options;
-    Cache.setCache(
-      hash,
-      {
-        state: "LOADING",
-        data: undefined,
-        error: undefined,
-      },
-      {
-        backgroundFetch,
-      }
-    );
+    Cache.setCache(hash, createSimpleState("LOADING"), {
+      backgroundFetch,
+    });
     let i = 0;
-    let dbResult: DbResult<unknown> = {
-      state: "STALE",
-      error: undefined,
-      data: undefined,
-    };
+    let dbResult: DbResult<unknown> = createSimpleState("STALE");
 
     do {
       const result = await fetch(supabaseBuild.url.toString(), {
         headers: supabaseBuild.headers,
         method: supabaseBuild.method,
       });
+
       if (result.ok) {
+        let count: number | undefined;
+
+        const countHeader = supabaseBuild.headers["Prefer"]?.match(
+          /count=(exact|planned|estimated)/
+        );
+        const contentRange = result.headers.get("content-range")?.split("/");
+        if (countHeader && contentRange && contentRange.length > 1) {
+          count = parseInt(contentRange[1]);
+        }
+
         dbResult = {
           state: "SUCCESS",
           data: JSON.parse(await result.text()),
           error: undefined,
+          count,
+          status: result.status,
+          statusText: result.statusText,
         };
         break;
       } else if (i === retry) {
@@ -300,6 +290,9 @@ export const fetchData = async (
           state: "ERROR",
           data: undefined,
           error: await result.json(),
+          count: undefined,
+          status: result.status,
+          statusText: result.statusText,
         };
         break;
       } else {
@@ -313,4 +306,17 @@ export const fetchData = async (
   } catch (err) {
     return;
   }
+};
+
+const createSimpleState = <data>(
+  state: "STALE" | "LOADING"
+): DbResult<data> => {
+  return {
+    state,
+    count: undefined,
+    data: undefined,
+    error: undefined,
+    status: undefined,
+    statusText: undefined,
+  };
 };
