@@ -1,6 +1,6 @@
 import React, { useContext } from "react";
 import { PostgrestClient } from "../postgrest";
-import { DbResult } from "./db";
+import { DbResult } from "./useDb";
 
 export type SupabaseConfig = {
   url: string;

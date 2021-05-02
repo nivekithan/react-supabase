@@ -2,11 +2,12 @@
  * @jest-environment jsdom
  */
 
-import { db, useDb } from "@src/react-supabase/db";
+import { db } from "@src/react-supabase/db";
 import { renderHook } from "@testing-library/react-hooks";
 import React from "react";
 import { Wrapper, ServerData, errorClient, successClient } from "./utils";
 import { setHashFunction } from "@src/react-supabase/hash";
+import { useDb } from "@src/react-supabase/useDb";
 
 describe("Feature: Cache Hash", () => {
   test("Success: If hash is same no additional requests should be made to server", async () => {
