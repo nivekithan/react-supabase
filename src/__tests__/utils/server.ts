@@ -1,4 +1,4 @@
-import { PostgrestError } from "@src/react-supabase/db";
+import { PostgrestError } from "@src/react-supabase/useDb";
 import { rest } from "msw";
 import { setupServer } from "msw/node";
 import { url } from "./utils";

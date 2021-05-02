@@ -1,3 +1,5 @@
+import type { DbContext } from "./db";
+
 const stableStringifyReplacer = (_key: string, value: any): unknown => {
   if (typeof value === "function") {
     throw new Error("Cannot stringify non JSON value");
@@ -53,4 +55,12 @@ export const setHashFunction = (
     defaultHashFun: stableStringify,
     providedHashFun,
   };
+};
+
+export const getHash = (db: DbContext<any, any>, value: any) => {
+  const hashString = hash.isHashFunProvided
+    ? hash.providedHashFun(value)
+    : hash.defaultHashFun(value);
+
+  return `ID_${db.id}_ID_${hashString}`;
 };

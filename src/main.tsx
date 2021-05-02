@@ -11,7 +11,7 @@ const config = {
 
 const client = createClient(config);
 
-const supabaseOptions: SupabaseOptions = {
+const supabaseOptions: SupabaseOptions<unknown> = {
   cacheTime: 1_000 * 60 * 60 * 24,
 };
 

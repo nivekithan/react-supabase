@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { db, useDb } from "./react-supabase/db";
+import { db } from "./react-supabase/db";
+import { useDb } from "./react-supabase/useDb";
 
 const userData = db<any, { users: string }>(
   (supabase) => {

@@ -2,7 +2,8 @@
  * @jest-environment jsdom
  */
 
-import { db, useDb } from "@src/react-supabase/db";
+import { db } from "@src/react-supabase/db";
+import { useDb } from "@src/react-supabase/useDb";
 import { renderHook } from "@testing-library/react-hooks";
 import React from "react";
 import { Wrapper, ServerData, errorClient, successClient } from "./utils";
