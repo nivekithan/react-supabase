@@ -2,32 +2,21 @@ import React, { useState } from "react";
 import { db } from "./react-supabase/db";
 import { useDb } from "./react-supabase/useDb";
 
-const userData = db<any, { users: string }>(
-  (supabase) => {
-    return supabase
-      .from("users")
-      .select("*")
-      .lt("id", 3)
-      .order("id", { ascending: false })
-      .get();
-  },
-  {
-    shouldComponentUpdate: (curr, next) => {
-      if (curr.state === "STALE" && next.state === "LOADING") {
-        return false;
-      } else {
-        return true;
-      }
-    },
-  }
-);
+const userData = db<any, { users: string }>((supabase) => {
+  return supabase
+    .from("users")
+    .select("*")
+    .lt("id", 3)
+    .order("id", { ascending: false })
+    .get();
+});
 
 export const App = () => {
-  const [showChildren, setShowChildren] = useState(false);
-
+  const [numValue, setNumValue] = useState(0);
+  // const userDataRes = useDb(userData, { users: "users" });
   const onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    setShowChildren((s) => !s);
+    setNumValue((n) => n + 1);
   };
 
   // if (userDataRes.state === "LOADING") {
@@ -41,17 +30,17 @@ export const App = () => {
   return (
     <div>
       <p>Start of Supabase management</p>
-      <button onClick={onClick}>toggle children</button>
-      {showChildren ? <Component /> : null}
+      <button onClick={onClick}>Increase Number</button>
+      <Component num={numValue} />
     </div>
   );
 };
 
-const Component = () => {
+const Component = ({ num }: { num: number }) => {
   const userDataRes = useDb(
     userData,
-    { users: "users" },
-    { cacheTime: 2000, stopRefetchTimeout: 100 }
+    { users: `${num}` },
+    { enabled: num === 3 ? true : false }
   );
 
   if (userDataRes.state === "LOADING") {
@@ -62,5 +51,5 @@ const Component = () => {
     console.log(2, userDataRes.state, userDataRes.data);
   }
 
-  return <div>Children !</div>;
+  return <div>{num}</div>;
 };

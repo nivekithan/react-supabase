@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { SupabaseBuild } from "@src/postgrest/lib/types";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Cache, fetchData } from "./cache";
 import { SupabaseOptions, useSupabase } from "./context";
 import { DbContext, CreateUrl } from "./db";
@@ -21,6 +22,7 @@ export type DbResult<data> =
       status: number;
       statusText: string;
       count: undefined | number;
+      hash: string;
     }
   | {
       state: "ERROR";
@@ -29,6 +31,7 @@ export type DbResult<data> =
       status: number;
       statusText: string;
       count: undefined;
+      hash: string;
     }
   | {
       state: "LOADING" | "STALE";
@@ -37,9 +40,10 @@ export type DbResult<data> =
       status: undefined;
       statusText: undefined;
       count: undefined;
+      hash: string;
     };
 
-export type TResult<data> = DbResult<data> & { hash: string };
+export type useDbOptions<data> = SupabaseOptions<data>;
 
 /**
  * Overload when the db does not require any arguments
@@ -48,8 +52,8 @@ export type TResult<data> = DbResult<data> & { hash: string };
 export function useDb<data>(
   db: DbContext<data, undefined>,
   args?: undefined,
-  options?: SupabaseOptions<data>
-): TResult<data>;
+  options?: useDbOptions<data>
+): DbResult<data>;
 
 /**
  * Overload when the db does require arguments of type props
@@ -57,18 +61,18 @@ export function useDb<data>(
 export function useDb<data, props>(
   db: DbContext<data, props>,
   args: props,
-  options?: SupabaseOptions<data>
-): TResult<data>;
+  options?: useDbOptions<data>
+): DbResult<data>;
 
 export function useDb<data, props>(
   db: DbContext<data, props>,
   args?: props,
-  options?: SupabaseOptions<data>
+  options?: useDbOptions<data>
 ): DbResult<data> {
   const supabase = useSupabase();
   const finalOptions = useGetOptions(db.options, options || {});
 
-  const supabaseBuild = useMemo(() => {
+  const supabaseBuild = useMemo<SupabaseBuild>(() => {
     return typeof args !== "undefined"
       ? db.createUrl(supabase, args as props)
       : (db.createUrl as CreateUrl<undefined>)(supabase);
@@ -76,31 +80,38 @@ export function useDb<data, props>(
 
   const hashString = getHash(db, args);
 
-  const { current: key } = useRef(Key.getUniqueKey());
-
-  const cache = () => {
+  const cache = useCallback(() => {
     try {
       return Cache.getCache<data>(hashString);
     } catch (err) {
-      Cache.createNewCache(hashString, supabaseBuild, {
+      new Cache(hashString, supabaseBuild, {
         interval: finalOptions.cacheTime,
         backgroundFetch: finalOptions.backgroundFetch,
         retry: finalOptions.retry,
       });
       return Cache.getCache<data>(hashString);
     }
-  };
+  }, [
+    finalOptions.backgroundFetch,
+    finalOptions.cacheTime,
+    finalOptions.retry,
+    hashString,
+    supabaseBuild,
+  ]);
 
-  const [cacheData, setCacheData] = useState<DbResult<data>>(cache());
-  const result = useMemo(() => {
-    return {
-      ...cacheData,
-      hash: hashString,
-    };
-  }, [cacheData, hashString]);
+  const [result, setResult] = useState<DbResult<data>>(cache);
+
+  if (result.hash !== hashString) {
+    setResult(cache());
+  }
+  const { current: key } = useRef(Key.getKey());
 
   useEffect(() => {
     let isMounted = true;
+
+    if (!supabaseBuild) {
+      return;
+    }
 
     const {
       shouldComponentUpdate,
@@ -111,9 +122,7 @@ export function useDb<data, props>(
     const unSubscribe = Cache.subscribe<data>(
       hashString,
       (cache) => {
-        shouldComponentUpdate(cacheData, cache) &&
-          isMounted &&
-          setCacheData(cache);
+        shouldComponentUpdate(result, cache) && isMounted && setResult(cache);
       },
       { unique: key, stopRefetchTimeout, clearCacheTimeout }
     );
@@ -122,11 +131,11 @@ export function useDb<data, props>(
       isMounted = false;
       unSubscribe();
     };
-  }, [supabaseBuild, hashString, setCacheData, key, cacheData, finalOptions]);
+  }, [supabaseBuild, hashString, setResult, key, result, finalOptions]);
 
   /**
    * SetInterval delays the execution functions by the specified time so
-   * we have to create another useEffect with zero dependency to execute Function
+   * we have to create another useEffect to execute the function immediately
    */
 
   useEffect(() => {
@@ -135,9 +144,7 @@ export function useDb<data, props>(
     if (cache.state === "STALE") {
       fetchData(hashString, supabaseBuild, { retry: finalOptions.retry });
     }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [finalOptions.retry, hashString, supabaseBuild]);
 
   return result;
 }
