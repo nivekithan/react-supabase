@@ -19,7 +19,7 @@ export const db = <data, props>(
 ): DbContext<data, props> => {
   return {
     createUrl,
-    id: Key.getUniqueKey(),
+    id: Key.getKey(),
     options,
   };
 };

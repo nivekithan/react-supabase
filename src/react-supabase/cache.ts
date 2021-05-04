@@ -1,5 +1,5 @@
 import { SupabaseBuild } from "../postgrest/lib/types";
-import { DbResult } from "./db";
+import { DbResult } from "./useDb";
 import { fetch } from "cross-fetch";
 
 type CacheHash = {
@@ -122,7 +122,7 @@ export class Cache {
     };
   }
 
-  static createNewCache(
+  constructor(
     hash: string,
     supabaseBuild: SupabaseBuild,
     options: {
@@ -136,7 +136,7 @@ export class Cache {
     } else {
       const { backgroundFetch, interval, retry } = options;
       Cache.cache[hash] = {
-        result: createSimpleState("STALE"),
+        result: createSimpleState("STALE", hash),
 
         subscribers: {},
 
@@ -227,7 +227,7 @@ const fetchDataWithInterval = (
 
   const timeToken = setInterval(() => {
     try {
-      Cache.setCache(hash, createSimpleState("STALE"), {
+      Cache.setCache(hash, createSimpleState("STALE", hash), {
         backgroundFetch,
       });
       if (cache().state === "STALE") {
@@ -253,11 +253,11 @@ export const fetchData = async (
 ) => {
   try {
     const { backgroundFetch, retry } = options;
-    Cache.setCache(hash, createSimpleState("LOADING"), {
+    Cache.setCache(hash, createSimpleState("LOADING", hash), {
       backgroundFetch,
     });
     let i = 0;
-    let dbResult: DbResult<unknown> = createSimpleState("STALE");
+    let dbResult: DbResult<unknown> = createSimpleState("STALE", hash);
 
     do {
       const result = await fetch(supabaseBuild.url.toString(), {
@@ -283,6 +283,7 @@ export const fetchData = async (
           count,
           status: result.status,
           statusText: result.statusText,
+          hash,
         };
         break;
       } else if (i === retry) {
@@ -293,6 +294,7 @@ export const fetchData = async (
           count: undefined,
           status: result.status,
           statusText: result.statusText,
+          hash,
         };
         break;
       } else {
@@ -308,8 +310,9 @@ export const fetchData = async (
   }
 };
 
-const createSimpleState = <data>(
-  state: "STALE" | "LOADING"
+export const createSimpleState = <data>(
+  state: "STALE" | "LOADING",
+  hash: string
 ): DbResult<data> => {
   return {
     state,
@@ -318,5 +321,6 @@ const createSimpleState = <data>(
     error: undefined,
     status: undefined,
     statusText: undefined,
+    hash,
   };
 };

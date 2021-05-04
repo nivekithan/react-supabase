@@ -1,7 +1,7 @@
 let i = 0;
 
 export class Key {
-  static getUniqueKey() {
+  static getKey() {
     i++;
     return `${i}`;
   }
