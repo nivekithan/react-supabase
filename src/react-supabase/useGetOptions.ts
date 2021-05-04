@@ -9,6 +9,7 @@ const defaultConfig: Required<useDbOptions<unknown>> = {
   retry: 3,
   stopRefetchTimeout: 3000 * 60,
   clearCacheTimeout: 3000 * 60 * 10,
+  enabled: true,
 };
 
 export const useGetOptions = <data>(
