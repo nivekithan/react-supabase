@@ -1,19 +1,23 @@
 import { SupabaseBuild } from "../postgrest/lib/types";
-import { DbResult } from "./db";
+import { DbResult } from "./useDb";
 import { fetch } from "cross-fetch";
+import { SupabaseOptions } from "./context";
 
 type CacheHash = {
   result: DbResult<unknown>;
+
   subscribers: {
     [key: string]: (cache: DbResult<unknown>) => void;
   };
   stopRefetching: () => void;
   startRefetching: (immediate?: boolean) => void;
   clearCache: () => void;
-  refetchingTimeInterval: NodeJS.Timeout | undefined;
-  stopRefetchingTimeout: NodeJS.Timeout | undefined;
-  clearCacheTimeout: NodeJS.Timeout | undefined;
-};
+
+  // Timeouts and interval tokes
+  refetchingTimeToken: NodeJS.Timeout | undefined;
+  stopRefetchingToken: NodeJS.Timeout | undefined;
+  clearCacheToken: NodeJS.Timeout | undefined;
+} & Required<SupabaseOptions<unknown>>;
 
 type SetCacheOptions = {
   backgroundFetch?: boolean;
@@ -62,17 +66,17 @@ export class Cache {
     }
   ) {
     if (Cache.cache[hash]) {
-      const stopRefetchTimeout = Cache.cache[hash].stopRefetchingTimeout;
+      const stopRefetchTimeout = Cache.cache[hash].stopRefetchingToken;
       if (stopRefetchTimeout) {
         clearTimeout(stopRefetchTimeout);
-        Cache.cache[hash].stopRefetchingTimeout = undefined;
+        Cache.cache[hash].stopRefetchingToken = undefined;
       }
 
-      const clearCacheTimeout = Cache.cache[hash].clearCacheTimeout;
+      const clearCacheTimeout = Cache.cache[hash].clearCacheToken;
 
       if (clearCacheTimeout) {
         clearTimeout(clearCacheTimeout);
-        Cache.cache[hash].clearCacheTimeout = undefined;
+        Cache.cache[hash].clearCacheToken = undefined;
       }
 
       Cache.cache[hash].subscribers[options.unique] = callOnChange as (
@@ -106,7 +110,7 @@ export class Cache {
             Cache.cache[hash]?.stopRefetching();
           }, options.stopRefetchTimeout);
 
-          Cache.cache[hash].stopRefetchingTimeout = stopRefetchingTimeToken;
+          Cache.cache[hash].stopRefetchingToken = stopRefetchingTimeToken;
 
           /**
            * If there are no subscribers for clearCacheTimeout then
@@ -116,82 +120,98 @@ export class Cache {
           const clearCacheTimeout = setTimeout(() => {
             Cache.cache[hash]?.clearCache();
           }, options.clearCacheTimeout);
-          Cache.cache[hash].clearCacheTimeout = clearCacheTimeout;
+          Cache.cache[hash].clearCacheToken = clearCacheTimeout;
         }
       }
     };
   }
 
-  static createNewCache(
+  constructor(
     hash: string,
     supabaseBuild: SupabaseBuild,
-    options: {
-      interval: number;
-      backgroundFetch: boolean;
-      retry: number;
-    }
+    options: Required<SupabaseOptions<unknown>>
   ) {
     if (Cache.cache[hash]) {
       throw new Error("There is already a cache with hash: " + hash);
     } else {
-      const { backgroundFetch, interval, retry } = options;
       Cache.cache[hash] = {
         result: createSimpleState("STALE"),
 
         subscribers: {},
 
-        refetchingTimeInterval: undefined,
-        stopRefetchingTimeout: undefined,
-        clearCacheTimeout: undefined,
+        //  Interval and timeouts timetoken
+        refetchingTimeToken: undefined,
+        stopRefetchingToken: undefined,
+        clearCacheToken: undefined,
+
+        // Options
+        ...options,
 
         stopRefetching: () => {
           /**
            * If there is not a timeToken then we wont clear it
            */
 
-          const timeToken = Cache.cache[hash]?.refetchingTimeInterval;
+          const timeToken = Cache.cache[hash]?.refetchingTimeToken;
 
           if (timeToken) {
             clearInterval(timeToken);
-            Cache.cache[hash].refetchingTimeInterval = undefined;
+            Cache.cache[hash].refetchingTimeToken = undefined;
           }
 
           return;
         },
 
-        startRefetching: (immediate?: boolean) => {
+        startRefetching: (force?: boolean, immediate?: boolean) => {
           /**
+           *
            * If there is already timeToken then refetching is already in progress
-           * so there is no need to start a new one
+           * so there is no need to start a new one expect if force is true
+           * then we have we will start the refetching
+           *
            */
 
-          if (Cache.cache[hash]?.refetchingTimeInterval) {
-            return;
+          if (Cache.cache[hash].refetchingTimeToken) {
+            if (!force) {
+              return;
+            }
+
+            Cache.cache[hash].stopRefetching();
           }
+
+          const retry = Cache.getOptions(hash, "retry");
+          const backgroundFetch = Cache.getOptions(hash, "backgroundFetch");
+          const interval = Cache.getOptions(hash, "cacheTime");
+
           if (immediate) {
-            fetchData(hash, supabaseBuild, { retry, backgroundFetch });
+            fetchData(hash, supabaseBuild, {
+              retry,
+              backgroundFetch,
+            });
           }
           const timeToken = fetchDataWithInterval(hash, supabaseBuild, {
-            backgroundFetch,
             interval,
-            retry,
           });
 
-          Cache.cache[hash].refetchingTimeInterval = timeToken;
+          Cache.cache[hash].refetchingTimeToken = timeToken;
         },
 
         clearCache: () => {
-          Cache.cache[hash]?.stopRefetching();
-          const stopRefetchingTimeout =
-            Cache.cache[hash]?.stopRefetchingTimeout;
+          Cache.cache[hash].stopRefetching();
+          const stopRefetchingToken = Cache.cache[hash].stopRefetchingToken;
 
-          if (stopRefetchingTimeout) {
-            clearTimeout(stopRefetchingTimeout);
-            Cache.cache[hash].stopRefetchingTimeout = undefined;
+          if (stopRefetchingToken) {
+            clearTimeout(stopRefetchingToken);
+            Cache.cache[hash].stopRefetchingToken = undefined;
           }
-          if (Cache.cache[hash]) {
-            delete Cache.cache[hash];
+
+          const clearCacheToken = Cache.cache[hash].clearCacheToken;
+
+          if (clearCacheToken) {
+            clearTimeout(clearCacheToken);
           }
+
+          delete Cache.cache[hash];
         },
       };
     }
@@ -199,20 +219,45 @@ export class Cache {
 
   static reset() {
     Object.values(Cache.cache).forEach((cache) => {
-      cache.stopRefetching();
-      if (cache.stopRefetchingTimeout) {
-        clearTimeout(cache.stopRefetchingTimeout);
-      }
+      cache.clearCache();
     });
 
     Cache.cache = {};
+  }
+
+  static getOptions<key extends keyof Required<SupabaseOptions<unknown>>>(
+    hash: string,
+    key: key
+  ) {
+    if (Cache.cache[hash]) {
+      return Cache.cache[hash][key];
+    } else {
+      throw new Error("Cache.getOptions: There is no cache with hash: " + hash);
+    }
+  }
+
+  static setOptions(hash: string, options: SupabaseOptions<unknown>) {
+    if (Cache.cache[hash]) {
+      if (typeof options.cacheTime !== "undefined") {
+        Cache.cache[hash].stopRefetching();
+      }
+
+      Cache.cache[hash] = {
+        ...Cache.cache[hash],
+        ...options,
+      };
+
+      if (typeof options.cacheTime !== "undefined") {
+        Cache.cache[hash].startRefetching();
+      }
+    } else {
+      throw new Error("Cache.setOptions: There is no cache with hash: " + hash);
+    }
   }
 }
 
 type FetchDataIntervalOptions = {
   interval: number;
-  backgroundFetch: boolean;
-  retry: number;
 };
 
 const fetchDataWithInterval = (
@@ -220,13 +265,15 @@ const fetchDataWithInterval = (
   supabaseBuild: SupabaseBuild,
   options: FetchDataIntervalOptions
 ) => {
-  const { interval, backgroundFetch, retry } = options;
+  const { interval } = options;
   const cache = () => {
     return Cache.getCache<unknown>(hash);
   };
 
   const timeToken = setInterval(() => {
     try {
+      const backgroundFetch = Cache.getOptions(hash, "backgroundFetch");
+      const retry = Cache.getOptions(hash, "retry");
       Cache.setCache(hash, createSimpleState("STALE"), {
         backgroundFetch,
       });
@@ -294,6 +341,7 @@ export const fetchData = async (
           status: result.status,
           statusText: result.statusText,
         };
+
         break;
       } else {
         i++;

@@ -66,7 +66,6 @@ export function useDb<data, props>(
   options?: SupabaseOptions<data>
 ): DbResult<data> {
   const supabase = useSupabase();
-  const finalOptions = useGetOptions(db.options, options || {});
 
   const supabaseBuild = useMemo(() => {
     return typeof args !== "undefined"
@@ -75,6 +74,7 @@ export function useDb<data, props>(
   }, [args, db, supabase]);
 
   const hashString = getHash(db, args);
+  const finalOptions = useGetOptions(hashString, db.options, options || {});
 
   const { current: key } = useRef(Key.getUniqueKey());
 
@@ -82,11 +82,11 @@ export function useDb<data, props>(
     try {
       return Cache.getCache<data>(hashString);
     } catch (err) {
-      Cache.createNewCache(hashString, supabaseBuild, {
-        interval: finalOptions.cacheTime,
-        backgroundFetch: finalOptions.backgroundFetch,
-        retry: finalOptions.retry,
-      });
+      new Cache(
+        hashString,
+        supabaseBuild,
+        finalOptions as Required<SupabaseOptions<unknown>>
+      );
       return Cache.getCache<data>(hashString);
     }
   };
@@ -135,9 +135,7 @@ export function useDb<data, props>(
     if (cache.state === "STALE") {
       fetchData(hashString, supabaseBuild, { retry: finalOptions.retry });
     }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [finalOptions.retry, hashString, supabaseBuild]);
 
   return result;
 }
