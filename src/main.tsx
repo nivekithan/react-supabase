@@ -5,8 +5,8 @@ import { SupabaseConfig, SupabaseProvider } from "./react-supabase";
 import { createClient, SupabaseOptions } from "./react-supabase/context";
 
 const config = {
-  key: import.meta.env.VITE_DB_KEY + "adfd",
-  url: import.meta.env.VITE_DB_URL + "af",
+  key: import.meta.env.VITE_DB_KEY,
+  url: import.meta.env.VITE_DB_URL,
 } as SupabaseConfig;
 
 const client = createClient(config);
