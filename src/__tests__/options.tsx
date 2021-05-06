@@ -372,4 +372,118 @@ describe("Supabase options", () => {
     expect(result.current.state).toBe("ERROR");
     expect(result.all.length).toBe(stateChanges + 1);
   });
+
+  test("Error: Changing options in between the render should also be change the behavior", async () => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
+
+    let retry = 0;
+    const { result, waitFor, waitForNextUpdate, rerender } = renderHook(
+      () => useDb(dbAtom, undefined, { retry }),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              client={errorClient}
+              options={{
+                cacheTime: 100,
+              }}
+            >
+              {children}
+            </Wrapper>
+          );
+        },
+      }
+    );
+
+    await waitFor(() => {
+      return result.current.state === "ERROR";
+    });
+
+    const times = ServerData.times;
+
+    retry = 4;
+
+    rerender();
+
+    await waitForNextUpdate();
+
+    expect(ServerData.times).toBe(times + 5);
+  });
+
+  test("Success: Changing cacheTime in between the render should change the interval", async () => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
+    let cacheTime = 1000_000;
+    const { result, waitFor, waitForNextUpdate, rerender } = renderHook(
+      () => useDb(dbAtom, undefined, { cacheTime }),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              client={successClient}
+              options={{
+                retry: 0,
+              }}
+            >
+              {children}
+            </Wrapper>
+          );
+        },
+      }
+    );
+
+    await waitFor(() => {
+      return result.current.state === "SUCCESS";
+    });
+
+    cacheTime = 100;
+
+    rerender();
+
+    await waitForNextUpdate();
+
+    expect(ServerData.times).toBe(2);
+  });
+
+  test("Error: Changing cacheTime in between the render should change the interval", async () => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
+    let cacheTime = 1000_000;
+    const { result, waitFor, waitForNextUpdate, rerender } = renderHook(
+      () => useDb(dbAtom, undefined, { cacheTime }),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper
+              client={errorClient}
+              options={{
+                retry: 0,
+              }}
+            >
+              {children}
+            </Wrapper>
+          );
+        },
+      }
+    );
+
+    await waitFor(() => {
+      return result.current.state === "ERROR";
+    });
+
+    cacheTime = 100;
+
+    rerender();
+
+    await waitForNextUpdate();
+
+    expect(ServerData.times).toBe(2);
+  });
 });
