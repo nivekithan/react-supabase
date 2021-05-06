@@ -5,6 +5,7 @@ import { SupabaseOptions } from "./context";
 
 type CacheHash = {
   result: DbResult<unknown>;
+  hash: string;
 
   subscribers: {
     [key: string]: (cache: DbResult<unknown>) => void;
@@ -61,8 +62,6 @@ export class Cache {
     callOnChange: (cache: DbResult<data>) => void,
     options: {
       unique: string;
-      stopRefetchTimeout: number;
-      clearCacheTimeout: number;
     }
   ) {
     if (Cache.cache[hash]) {
@@ -98,6 +97,8 @@ export class Cache {
        * Thats why we will check if cache with hash exists
        */
       if (Cache.cache[hash]) {
+        const stopRefetchTimeout = Cache.cache[hash].stopRefetchTimeout;
+        const clearCacheTimeout = Cache.cache[hash].clearCacheTimeout;
         delete Cache.cache[hash].subscribers[options.unique];
 
         if (Object.values(Cache.cache[hash].subscribers).length === 0) {
@@ -108,7 +109,7 @@ export class Cache {
 
           const stopRefetchingTimeToken = setTimeout(() => {
             Cache.cache[hash]?.stopRefetching();
-          }, options.stopRefetchTimeout);
+          }, stopRefetchTimeout);
 
           Cache.cache[hash].stopRefetchingToken = stopRefetchingTimeToken;
 
@@ -117,10 +118,10 @@ export class Cache {
            * we will remove the cache itself
            */
 
-          const clearCacheTimeout = setTimeout(() => {
+          const clearCacheToken = setTimeout(() => {
             Cache.cache[hash]?.clearCache();
-          }, options.clearCacheTimeout);
-          Cache.cache[hash].clearCacheToken = clearCacheTimeout;
+          }, clearCacheTimeout);
+          Cache.cache[hash].clearCacheToken = clearCacheToken;
         }
       }
     };
@@ -135,8 +136,8 @@ export class Cache {
       throw new Error("There is already a cache with hash: " + hash);
     } else {
       Cache.cache[hash] = {
-        result: createSimpleState("STALE"),
-
+        result: createSimpleState(hash, "STALE"),
+        hash,
         subscribers: {},
 
         //  Interval and timeouts timetoken
@@ -179,13 +180,11 @@ export class Cache {
             Cache.cache[hash].stopRefetching();
           }
 
-          const retry = Cache.getOptions(hash, "retry");
           const backgroundFetch = Cache.getOptions(hash, "backgroundFetch");
           const interval = Cache.getOptions(hash, "cacheTime");
 
           if (immediate) {
             fetchData(hash, supabaseBuild, {
-              retry,
               backgroundFetch,
             });
           }
@@ -273,12 +272,11 @@ const fetchDataWithInterval = (
   const timeToken = setInterval(() => {
     try {
       const backgroundFetch = Cache.getOptions(hash, "backgroundFetch");
-      const retry = Cache.getOptions(hash, "retry");
-      Cache.setCache(hash, createSimpleState("STALE"), {
+      Cache.setCache(hash, createSimpleState(hash, "STALE"), {
         backgroundFetch,
       });
       if (cache().state === "STALE") {
-        fetchData(hash, supabaseBuild, { backgroundFetch, retry });
+        fetchData(hash, supabaseBuild, { backgroundFetch });
       }
     } catch (err) {
       return;
@@ -290,21 +288,21 @@ const fetchDataWithInterval = (
 
 type FetchDataOptions = {
   backgroundFetch?: boolean;
-  retry: number;
 };
 
 export const fetchData = async (
   hash: string,
   supabaseBuild: SupabaseBuild,
-  options: FetchDataOptions
+  options: FetchDataOptions = {}
 ) => {
   try {
-    const { backgroundFetch, retry } = options;
-    Cache.setCache(hash, createSimpleState("LOADING"), {
+    const { backgroundFetch } = options;
+    const retry = Cache.getOptions(hash, "retry");
+    Cache.setCache(hash, createSimpleState(hash, "LOADING"), {
       backgroundFetch,
     });
     let i = 0;
-    let dbResult: DbResult<unknown> = createSimpleState("STALE");
+    let dbResult: DbResult<unknown> = createSimpleState(hash, "STALE");
 
     do {
       const result = await fetch(supabaseBuild.url.toString(), {
@@ -313,23 +311,13 @@ export const fetchData = async (
       });
 
       if (result.ok) {
-        let count: number | undefined;
-
-        const countHeader = supabaseBuild.headers["Prefer"]?.match(
-          /count=(exact|planned|estimated)/
-        );
-        const contentRange = result.headers.get("content-range")?.split("/");
-        if (countHeader && contentRange && contentRange.length > 1) {
-          count = parseInt(contentRange[1]);
-        }
-
         dbResult = {
           state: "SUCCESS",
           data: JSON.parse(await result.text()),
           error: undefined,
-          count,
           status: result.status,
           statusText: result.statusText,
+          hash,
         };
         break;
       } else if (i === retry) {
@@ -337,9 +325,9 @@ export const fetchData = async (
           state: "ERROR",
           data: undefined,
           error: await result.json(),
-          count: undefined,
           status: result.status,
           statusText: result.statusText,
+          hash,
         };
 
         break;
@@ -357,11 +345,12 @@ export const fetchData = async (
 };
 
 const createSimpleState = <data>(
+  hash: string,
   state: "STALE" | "LOADING"
 ): DbResult<data> => {
   return {
     state,
-    count: undefined,
+    hash,
     data: undefined,
     error: undefined,
     status: undefined,
