@@ -67,7 +67,7 @@ export function useDb<data, props>(
 
   const supabaseBuild = useMemo(() => {
     return typeof args !== "undefined"
-      ? db.createUrl(supabase, args as props)
+      ? db.createUrl(supabase, args)
       : (db.createUrl as CreateUrl<undefined>)(supabase);
   }, [args, db, supabase]);
 

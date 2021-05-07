@@ -1,0 +1,12 @@
+{
+	"Sets Jests environment": {
+		"prefix": "jenv",
+		"body": [
+		  "/**",
+		  " * @jest-environment jsdom",
+		  " */"
+		],
+		"description": "Sets Jests environment to jsdom"
+	  }
+
+}

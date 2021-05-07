@@ -1,56 +1,53 @@
 import React, { useState } from "react";
 import { db } from "./react-supabase/db";
+import { deDb, useDeDb } from "./react-supabase/deDb";
 import { useDb } from "./react-supabase/useDb";
 
-const userData = db<any, { users: string }>((supabase) => {
-  return supabase
-    .from("users")
-    .select("*")
-    .lt("id", 3)
-    .order("id", { ascending: false })
-    .get();
-});
+const userData = db<{ id: number; userName: string }, string>(
+  (supabase, table) => {
+    return supabase.from(table).select("*").eq("id", 3).get();
+  }
+);
+
+const plus1User = deDb<{ id: number; userName: string }, string>(
+  (supabase) => (get) => {
+    const result = get(userData, "users");
+
+    if (result.state === "SUCCESS") {
+      return supabase
+        .from("users")
+        .select("*")
+        .eq("id", result.data[0].id + 1)
+        .get();
+    } else {
+      return supabase.from("users").select("*").eq("id", 1).get();
+    }
+  }
+);
 
 export const App = () => {
-  const [retry, setRetry] = useState(0);
+  const { state, data } = useDb(userData, "users");
+  const [showChildren, setShowChildren] = useState(true);
 
   const onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    setRetry((s) => s + 1);
+    setShowChildren((s) => !s);
   };
-
-  // if (userDataRes.state === "LOADING") {
-  //   console.log(1, "Loading");
-  // } else if (userDataRes.state === "ERROR") {
-  //   console.log(1, "Error", userDataRes.error);
-  // } else {
-  //   console.log(1, userDataRes.state, userDataRes.data, userDataRes.error);
-  // }
 
   return (
     <div>
       <p>Start of Supabase management</p>
-      <small>{retry}</small>
-      <button onClick={onClick}>Increase retry </button>
-      <Component retry={retry} />
+      {state === "SUCCESS" ? <small>Success</small> : null}
+      <button onClick={onClick}>Shown children </button>
+      {showChildren ? <Component /> : null}
     </div>
   );
 };
 
-const Component = ({ retry }: { retry: number }) => {
-  const userDataRes = useDb(
-    userData,
-    { users: "users" },
-    { retry, cacheTime: 100_000 }
-  );
+const Component = () => {
+  const result = useDeDb(plus1User, "users");
 
-  if (userDataRes.state === "LOADING") {
-    console.log(2, "Loading");
-  } else if (userDataRes.state === "ERROR") {
-    console.log(2, "Error", userDataRes.error);
-  } else {
-    console.log(2, userDataRes.state, userDataRes.data);
-  }
+  console.log(result);
 
   return <div>Children !</div>;
 };
