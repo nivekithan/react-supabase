@@ -10,7 +10,13 @@ This is repo is client library for [supabase_io](https://supabase.io/).
 
 As of now I am aim to provide these features
 
--[X] Caching -[X] Retry Failed requests -[X] Automatically refetch the requests -[X] Background Refetching -[X] Finer control over state-updates with `shouldComponentUpdate` -[ ] Dependent Requests -[ ] Prefetch Requests
+- [X] Caching 
+- [X] Retry Failed requests 
+- [X] Automatically refetch the requests 
+- [X] Background Refetching 
+- [X] Finer control over state-updates with `shouldComponentUpdate` 
+- [ ] Dependent Requests 
+- [ ] Prefetch Requests
 
 **Note: The list is not comprehensive list of all features**
 
