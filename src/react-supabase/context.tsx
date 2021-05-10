@@ -14,7 +14,7 @@ export const createClient = ({ url, key }: SupabaseConfig) => {
   });
 };
 
-export type SupabaseOptions<data> = {
+export type dbOptions<data> = {
   cacheTime?: number;
   backgroundFetch?: boolean;
   shouldComponentUpdate?: (
@@ -27,25 +27,32 @@ export type SupabaseOptions<data> = {
 };
 
 const supabase = React.createContext<PostgrestClient | undefined>(undefined);
-const supabaseOptionsContext = React.createContext<
-  SupabaseOptions<unknown> | undefined
->(undefined);
+const dbOptionsContext = React.createContext<dbOptions<unknown> | undefined>(
+  undefined
+);
 
-export type SupabaseProviderProps = {
+export type ClientProviderProps = {
   client: PostgrestClient;
   children: React.ReactNode;
-  options?: SupabaseOptions<unknown>;
 };
 
-export const SupabaseProvider = ({
-  children,
-  client,
+export const ClientProvider = ({ children, client }: ClientProviderProps) => {
+  return <supabase.Provider value={client}>{children}</supabase.Provider>;
+};
+
+export type DbOptionsProviderProps = {
+  options?: dbOptions<unknown>;
+  children: React.ReactNode;
+};
+
+export const DbOptionsProvider = ({
   options = {},
-}: SupabaseProviderProps) => {
+  children,
+}: DbOptionsProviderProps) => {
   return (
-    <supabaseOptionsContext.Provider value={options}>
-      <supabase.Provider value={client}>{children}</supabase.Provider>
-    </supabaseOptionsContext.Provider>
+    <dbOptionsContext.Provider value={options}>
+      {children}
+    </dbOptionsContext.Provider>
   );
 };
 
@@ -59,12 +66,30 @@ export const useSupabase = () => {
   }
 };
 
-export const useSupabaseOptions = () => {
-  const supabaseOptions = useContext(supabaseOptionsContext);
+export const useDbOptions = () => {
+  const supabaseOptions = useContext(dbOptionsContext);
 
   if (!supabaseOptions) {
     throw new Error("use useSupabaseOptions inside the SupabaseProvider tree");
   } else {
     return supabaseOptions;
   }
+};
+
+type SupabaseProviderProps = {
+  children: React.ReactNode;
+  client: PostgrestClient;
+  dbOptions?: dbOptions<unknown>;
+};
+
+export const SupabaseProvider = ({
+  children,
+  client,
+  dbOptions,
+}: SupabaseProviderProps) => {
+  return (
+    <ClientProvider client={client}>
+      <DbOptionsProvider options={dbOptions}>{children}</DbOptionsProvider>
+    </ClientProvider>
+  );
 };

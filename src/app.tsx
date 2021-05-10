@@ -27,7 +27,7 @@ const plus1User = deDb<{ id: number; userName: string }, string>(
 
 export const App = () => {
   const { state, data } = useDb(userData, "users");
-  const [showChildren, setShowChildren] = useState(true);
+  const [showChildren, setShowChildren] = useState(false);
 
   const onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();

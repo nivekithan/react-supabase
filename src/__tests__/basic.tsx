@@ -3,8 +3,8 @@
  */
 
 import { db } from "@src/react-supabase/db";
-import { useDb } from "@src/react-supabase/useDb";
-import { renderHook } from "@testing-library/react-hooks";
+import { DbResult, useDb } from "@src/react-supabase/useDb";
+import { Renderer, renderHook, Result } from "@nivekithan/react-hooks";
 import React from "react";
 import {
   Wrapper,
@@ -35,7 +35,7 @@ describe("Flow of requests", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitForNextUpdate();
 
@@ -45,7 +45,6 @@ describe("Flow of requests", () => {
       expect(result.current.error).toBeUndefined();
       expect(result.current.status).toBe(200);
       expect(result.current.statusText).toBe("The request is success");
-      expect(result.current.count).toBeUndefined();
     } else {
       expect(result.all).toHaveLength(2);
       await waitForNextUpdate({
@@ -56,7 +55,6 @@ describe("Flow of requests", () => {
       expect(result.current.error).toBeUndefined();
       expect(result.current.status).toBe(200);
       expect(result.current.statusText).toBe("The request is success");
-      expect(result.current.count).toBeUndefined();
     }
   });
 
@@ -80,7 +78,7 @@ describe("Flow of requests", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitForNextUpdate();
 
@@ -89,7 +87,6 @@ describe("Flow of requests", () => {
       expect(result.current.state).toBe("ERROR");
       expect(result.current.error).toStrictEqual(errorResult);
       expect(result.current.data).toBeUndefined();
-      expect(result.current.count).toBeUndefined();
       expect(result.current.status).toBe(500);
       expect(result.current.statusText).toBe("The request is not success");
     } else {
@@ -101,7 +98,6 @@ describe("Flow of requests", () => {
       expect(result.current.state).toBe("ERROR");
       expect(result.current.error).toStrictEqual(errorResult);
       expect(result.current.data).toBeUndefined();
-      expect(result.current.count).toBeUndefined();
       expect(result.current.status).toBe(500);
       expect(result.current.statusText).toBe("The request is not success");
     }

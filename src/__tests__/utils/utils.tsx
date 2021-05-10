@@ -1,10 +1,12 @@
 /* eslint-disable react/prop-types */
 import {
   createClient,
-  SupabaseProvider,
-  SupabaseProviderProps,
+  DbOptionsProviderProps,
+  ClientProvider,
+  ClientProviderProps,
+  DbOptionsProvider,
 } from "@src/react-supabase/context";
-import { WrapperComponent } from "@testing-library/react-hooks";
+import { WrapperComponent } from "@nivekithan/react-hooks";
 import React from "react";
 
 export const KEY = "1234567890-test-key";
@@ -14,15 +16,13 @@ export const url = {
   errorToSuccess: "https://test_url/errortosuccess",
 };
 
-export const Wrapper: WrapperComponent<SupabaseProviderProps> = ({
-  children,
-  client,
-  options,
-}) => {
+export const Wrapper: WrapperComponent<
+  ClientProviderProps & DbOptionsProviderProps
+> = ({ children, client, options = {} }) => {
   return (
-    <SupabaseProvider client={client} options={options}>
-      {children}
-    </SupabaseProvider>
+    <ClientProvider client={client}>
+      <DbOptionsProvider options={options}>{children}</DbOptionsProvider>
+    </ClientProvider>
   );
 };
 

@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { App } from "./app";
 import { SupabaseConfig, SupabaseProvider } from "./react-supabase";
-import { createClient, SupabaseOptions } from "./react-supabase/context";
+import { createClient, dbOptions } from "./react-supabase/context";
 
 const config = {
   key: import.meta.env.VITE_DB_KEY,
@@ -11,13 +11,13 @@ const config = {
 
 const client = createClient(config);
 
-const supabaseOptions: SupabaseOptions<unknown> = {
+const supabaseOptions: dbOptions<unknown> = {
   cacheTime: 1_000 * 60 * 60 * 24,
 };
 
 ReactDOM.render(
   <React.StrictMode>
-    <SupabaseProvider client={client} options={supabaseOptions}>
+    <SupabaseProvider client={client} dbOptions={supabaseOptions}>
       <App />
     </SupabaseProvider>
   </React.StrictMode>,

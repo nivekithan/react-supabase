@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Cache, fetchData } from "./cache";
-import { SupabaseOptions, useSupabase } from "./context";
+import { dbOptions, useSupabase } from "./context";
 import { DbContext, CreateUrl } from "./db";
 import { getHash } from "./hash";
 import { Key } from "./key";
-import { useGetOptions } from "./useGetOptions";
+import { useGetDbOptions } from "./useGetOptions";
 
 export type PostgrestError = {
   message: string;
@@ -46,7 +46,7 @@ export type DbResult<data> =
 export function useDb<data>(
   db: DbContext<data, undefined>,
   args?: undefined,
-  options?: SupabaseOptions<data>
+  options?: dbOptions<data>
 ): DbResult<data>;
 
 /**
@@ -55,13 +55,13 @@ export function useDb<data>(
 export function useDb<data, props>(
   db: DbContext<data, props>,
   args: props,
-  options?: SupabaseOptions<data>
+  options?: dbOptions<data>
 ): DbResult<data>;
 
 export function useDb<data, props>(
   db: DbContext<data, props>,
   args?: props,
-  options?: SupabaseOptions<data>
+  options?: dbOptions<data>
 ): DbResult<data> {
   const supabase = useSupabase();
 
@@ -71,8 +71,8 @@ export function useDb<data, props>(
       : (db.createUrl as CreateUrl<undefined>)(supabase);
   }, [args, db, supabase]);
 
-  const hashString = getHash(db, args);
-  const finalOptions = useGetOptions(hashString, db.options, options || {});
+  const hashString = getHash(db, args as props);
+  const finalOptions = useGetDbOptions(hashString, db.options, options || {});
 
   const { current: key } = useRef(Key.getUniqueKey());
 
@@ -83,7 +83,7 @@ export function useDb<data, props>(
       new Cache(
         hashString,
         supabaseBuild,
-        finalOptions as Required<SupabaseOptions<unknown>>
+        finalOptions as Required<dbOptions<unknown>>
       );
       return Cache.getCache<data>(hashString);
     }

@@ -1,7 +1,7 @@
 import { SupabaseBuild } from "../postgrest/lib/types";
 import { DbResult } from "./useDb";
 import { fetch } from "cross-fetch";
-import { SupabaseOptions } from "./context";
+import { dbOptions } from "./context";
 
 type CacheHash = {
   result: DbResult<unknown>;
@@ -18,7 +18,7 @@ type CacheHash = {
   refetchingTimeToken: NodeJS.Timeout | undefined;
   stopRefetchingToken: NodeJS.Timeout | undefined;
   clearCacheToken: NodeJS.Timeout | undefined;
-} & Required<SupabaseOptions<unknown>>;
+} & Required<dbOptions<unknown>>;
 
 type SetCacheOptions = {
   backgroundFetch?: boolean;
@@ -130,7 +130,7 @@ export class Cache {
   constructor(
     hash: string,
     supabaseBuild: SupabaseBuild,
-    options: Required<SupabaseOptions<unknown>>
+    options: Required<dbOptions<unknown>>
   ) {
     if (Cache.cache[hash]) {
       throw new Error("There is already a cache with hash: " + hash);
@@ -224,7 +224,7 @@ export class Cache {
     Cache.cache = {};
   }
 
-  static getOptions<key extends keyof Required<SupabaseOptions<unknown>>>(
+  static getOptions<key extends keyof Required<dbOptions<unknown>>>(
     hash: string,
     key: key
   ) {
@@ -235,7 +235,7 @@ export class Cache {
     }
   }
 
-  static setOptions(hash: string, options: SupabaseOptions<unknown>) {
+  static setOptions(hash: string, options: dbOptions<unknown>) {
     if (Cache.cache[hash]) {
       if (typeof options.cacheTime !== "undefined") {
         Cache.cache[hash].stopRefetching();

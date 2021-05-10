@@ -3,8 +3,13 @@
  */
 
 import { db } from "@src/react-supabase/db";
-import { useDb } from "@src/react-supabase/useDb";
-import { renderHook } from "@testing-library/react-hooks";
+import { DbResult, useDb } from "@src/react-supabase/useDb";
+import {
+  Renderer,
+  RendererProps,
+  renderHook,
+  Result,
+} from "@nivekithan/react-hooks";
 import React from "react";
 import { Wrapper, errorClient, successClient } from "./utils";
 
@@ -29,7 +34,7 @@ describe("Feature: Background fetching", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -63,7 +68,7 @@ describe("Feature: Background fetching", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "ERROR";
@@ -97,7 +102,7 @@ describe("Feature: Background fetching", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -134,7 +139,7 @@ describe("Feature: Background fetching", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "ERROR";

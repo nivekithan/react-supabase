@@ -3,8 +3,8 @@
  */
 
 import { db } from "@src/react-supabase/db";
-import { useDb } from "@src/react-supabase/useDb";
-import { renderHook } from "@testing-library/react-hooks";
+import { DbResult, useDb } from "@src/react-supabase/useDb";
+import { Renderer, renderHook, Result } from "@nivekithan/react-hooks";
 import React from "react";
 import { Wrapper, ServerData, errorClient, successClient } from "./utils";
 
@@ -27,7 +27,8 @@ describe("Supabase options", () => {
       wrapper: ({ children }) => {
         return <Wrapper client={successClient}>{children}</Wrapper>;
       },
-    });
+    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+
     await waitFor(() => {
       return result.current.state === "SUCCESS";
     });
@@ -94,7 +95,7 @@ describe("Supabase options", () => {
       wrapper: ({ children }) => {
         return <Wrapper client={errorClient}>{children}</Wrapper>;
       },
-    });
+    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "ERROR";
@@ -166,7 +167,7 @@ describe("Supabase options", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -201,7 +202,7 @@ describe("Supabase options", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "ERROR";
@@ -241,7 +242,8 @@ describe("Supabase options", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+
     await waitFor(() => {
       return result.current.state === "SUCCESS";
     });
@@ -280,7 +282,7 @@ describe("Supabase options", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "ERROR";
@@ -294,7 +296,7 @@ describe("Supabase options", () => {
     expect(result.all.length).toBe(stateChanges + 1);
   });
 
-  test("Success : Option provided in useDb should overwrite default, context options and dbOptions", async () => {
+  test("Success : Option provided in useDb should overwrite default, context options and options", async () => {
     const dbAtom = db<unknown, undefined>(
       (supabase) => {
         return supabase.from("users").select("name").get();
@@ -320,7 +322,8 @@ describe("Supabase options", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+
     await waitFor(() => {
       return result.current.state === "SUCCESS";
     });
@@ -359,7 +362,7 @@ describe("Supabase options", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "ERROR";
@@ -396,7 +399,7 @@ describe("Supabase options", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "ERROR";
@@ -435,7 +438,7 @@ describe("Supabase options", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -472,7 +475,7 @@ describe("Supabase options", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "ERROR";

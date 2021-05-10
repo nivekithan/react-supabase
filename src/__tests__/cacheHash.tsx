@@ -3,11 +3,11 @@
  */
 
 import { db } from "@src/react-supabase/db";
-import { renderHook } from "@testing-library/react-hooks";
+import { Renderer, renderHook, Result } from "@nivekithan/react-hooks";
 import React from "react";
 import { Wrapper, ServerData, errorClient, successClient } from "./utils";
 import { setHashFunction } from "@src/react-supabase/hash";
-import { useDb } from "@src/react-supabase/useDb";
+import { DbResult, useDb } from "@src/react-supabase/useDb";
 
 describe("Feature: Cache Hash", () => {
   test("Success: If hash is same no additional requests should be made to server", async () => {
@@ -33,7 +33,11 @@ describe("Feature: Cache Hash", () => {
           );
         },
       }
-    );
+    ) as Result<
+      unknown,
+      { first: DbResult<unknown>; second: DbResult<unknown> },
+      Renderer<unknown>
+    >;
 
     await waitFor(() => {
       return (
@@ -68,7 +72,15 @@ describe("Feature: Cache Hash", () => {
           );
         },
       }
-    );
+    ) as Result<
+      unknown,
+      {
+        first: DbResult<unknown>;
+        second: DbResult<unknown>;
+        third: DbResult<unknown>;
+      },
+      Renderer<unknown>
+    >;
 
     await waitFor(() => {
       return (
@@ -102,7 +114,11 @@ describe("Feature: Cache Hash", () => {
           );
         },
       }
-    );
+    ) as Result<
+      unknown,
+      { first: DbResult<unknown>; second: DbResult<unknown> },
+      Renderer<unknown>
+    >;
 
     await waitFor(() => {
       return (
@@ -135,7 +151,11 @@ describe("Feature: Cache Hash", () => {
           );
         },
       }
-    );
+    ) as Result<
+      unknown,
+      { first: DbResult<unknown>; second: DbResult<unknown> },
+      Renderer<unknown>
+    >;
 
     await waitFor(() => {
       return (
@@ -174,7 +194,11 @@ describe("Feature: Cache Hash", () => {
           );
         },
       }
-    );
+    ) as Result<
+      unknown,
+      { first: DbResult<unknown>; second: DbResult<unknown> },
+      Renderer<unknown>
+    >;
 
     await waitFor(() => {
       return (
@@ -214,7 +238,11 @@ describe("Feature: Cache Hash", () => {
           );
         },
       }
-    );
+    ) as Result<
+      unknown,
+      { first: DbResult<unknown>; second: DbResult<unknown> },
+      Renderer<unknown>
+    >;
 
     await waitFor(() => {
       return (
@@ -263,7 +291,11 @@ describe("Feature: Override default Hash function", () => {
           );
         },
       }
-    );
+    ) as Result<
+      unknown,
+      { first: DbResult<unknown>; second: DbResult<unknown> },
+      Renderer<unknown>
+    >;
 
     expect(result.current.first.hash).toBe(result.current.second.hash);
   });
@@ -302,7 +334,11 @@ describe("Feature: Override default Hash function", () => {
           );
         },
       }
-    );
+    ) as Result<
+      unknown,
+      { first: DbResult<unknown>; second: DbResult<unknown> },
+      Renderer<unknown>
+    >;
 
     expect(result.current.first.hash).toBe(result.current.second.hash);
   });

@@ -1,4 +1,5 @@
 import type { DbContext } from "./db";
+import type { DeDbContext } from "./deDb";
 
 const stableStringifyReplacer = (_key: string, value: any): unknown => {
   if (typeof value === "function") {
@@ -57,7 +58,10 @@ export const setHashFunction = (
   };
 };
 
-export const getHash = (db: DbContext<any, any>, value: any) => {
+export const getHash = <data, props>(
+  db: DbContext<data, props> | DeDbContext<data, props>,
+  value: props
+) => {
   const hashString = hash.isHashFunProvided
     ? hash.providedHashFun(value)
     : hash.defaultHashFun(value);

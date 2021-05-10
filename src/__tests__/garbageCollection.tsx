@@ -3,8 +3,8 @@
  */
 
 import { db } from "@src/react-supabase/db";
-import { useDb } from "@src/react-supabase/useDb";
-import { renderHook } from "@testing-library/react-hooks";
+import { DbResult, useDb } from "@src/react-supabase/useDb";
+import { Renderer, renderHook, Result } from "@nivekithan/react-hooks";
 import React from "react";
 import { Wrapper, ServerData, errorClient, successClient } from "./utils";
 
@@ -29,7 +29,7 @@ describe("Feature: Garbage collection", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -67,7 +67,7 @@ describe("Feature: Garbage collection", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "ERROR";
@@ -105,7 +105,7 @@ describe("Feature: Garbage collection", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -149,7 +149,7 @@ describe("Feature: Garbage collection", () => {
           );
         },
       }
-    );
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "ERROR";

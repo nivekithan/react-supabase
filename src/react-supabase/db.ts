@@ -1,6 +1,6 @@
 import { PostgrestClient } from "../postgrest";
 import { SupabaseBuild } from "../postgrest/lib/types";
-import { SupabaseOptions } from "./context";
+import { dbOptions } from "./context";
 import { Key } from "./key";
 
 export type CreateUrl<props> = props extends undefined
@@ -10,16 +10,18 @@ export type CreateUrl<props> = props extends undefined
 export type DbContext<data, props> = {
   createUrl: CreateUrl<props>;
   id: Key;
-  options: SupabaseOptions<data>;
+  options: dbOptions<data>;
+  type: "REQUEST";
 };
 
 export const db = <data, props>(
   createUrl: CreateUrl<props>,
-  options: SupabaseOptions<data> = {}
+  options: dbOptions<data> = {}
 ): DbContext<data, props> => {
   return {
     createUrl,
     id: Key.getUniqueKey(),
     options,
+    type: "REQUEST",
   };
 };
