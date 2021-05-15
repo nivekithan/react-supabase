@@ -1,26 +1,28 @@
 /* eslint-disable react/prop-types */
 import {
   createClient,
+  DbOptionsProviderProps,
+  ClientProviderProps,
   SupabaseProvider,
-  SupabaseProviderProps,
 } from "@src/react-supabase/context";
-import { WrapperComponent } from "@testing-library/react-hooks";
+import { WrapperComponent } from "@nivekithan/react-hooks";
 import React from "react";
 
 export const KEY = "1234567890-test-key";
 export const url = {
-  success: "https://test_url/sucess",
+  success: "https://test_url/success",
   error: "https://test_url/error",
   errorToSuccess: "https://test_url/errortosuccess",
+  dynamicSuccess: "https://test_url/dynamicsuccess",
 };
 
-export const Wrapper: WrapperComponent<SupabaseProviderProps> = ({
+export const Wrapper: WrapperComponent<ClientProviderProps & DbOptionsProviderProps> = ({
   children,
   client,
-  options,
+  options = {},
 }) => {
   return (
-    <SupabaseProvider client={client} options={options}>
+    <SupabaseProvider client={client} dbOptions={options}>
       {children}
     </SupabaseProvider>
   );
@@ -38,5 +40,10 @@ export const errorClient = createClient({
 
 export const errorToSuccessClient = createClient({
   url: url.errorToSuccess,
+  key: KEY,
+});
+
+export const dynamicSuccessClient = createClient({
+  url: url.dynamicSuccess,
   key: KEY,
 });

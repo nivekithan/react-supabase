@@ -1,8 +1,8 @@
 import { useEffect, useMemo } from "react";
 import { Cache } from "./cache";
-import { SupabaseOptions, useSupabaseOptions } from "./context";
+import { dbOptions, useDbOptions } from "./context";
 
-const defaultConfig: Required<SupabaseOptions<unknown>> = {
+const defaultDbOptions: Required<dbOptions<unknown>> = {
   cacheTime: 3000 * 60,
   backgroundFetch: true,
   shouldComponentUpdate: () => true,
@@ -16,21 +16,21 @@ const defaultConfig: Required<SupabaseOptions<unknown>> = {
  * whenever it changes
  */
 
-export const useGetOptions = <data>(
+export const useGetDbOptions = <data>(
   hash: string,
-  dbOptions: SupabaseOptions<data>,
-  useDbOptions: SupabaseOptions<data>
+  dbOptions: dbOptions<data>,
+  useDbOption: dbOptions<data>
 ) => {
-  const supabaseOptions = useSupabaseOptions();
+  const supabaseOptions = useDbOptions();
 
-  const options = useMemo<Required<SupabaseOptions<data>>>(() => {
-    const options = { ...defaultConfig };
-    Object.assign(options, supabaseOptions, dbOptions, useDbOptions);
+  const options = useMemo<Required<dbOptions<data>>>(() => {
+    const options = { ...defaultDbOptions };
+    Object.assign(options, supabaseOptions, dbOptions, useDbOption);
     return options;
-  }, [dbOptions, supabaseOptions, useDbOptions]);
+  }, [dbOptions, supabaseOptions, useDbOption]);
 
   useEffect(() => {
-    Cache.setOptions(hash, options as SupabaseOptions<unknown>);
+    Cache.setOptions(hash, options as dbOptions<unknown>);
   }, [hash, options]);
 
   return options;

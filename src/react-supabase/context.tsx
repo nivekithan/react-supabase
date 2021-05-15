@@ -14,57 +14,66 @@ export const createClient = ({ url, key }: SupabaseConfig) => {
   });
 };
 
-export type SupabaseOptions<data> = {
+export type dbOptions<data> = {
   cacheTime?: number;
   backgroundFetch?: boolean;
-  shouldComponentUpdate?: (
-    curr: DbResult<data>,
-    next: DbResult<data>
-  ) => boolean;
+  shouldComponentUpdate?: (curr: DbResult<data>, next: DbResult<data>) => boolean;
   retry?: number;
   stopRefetchTimeout?: number;
   clearCacheTimeout?: number;
 };
 
 const supabase = React.createContext<PostgrestClient | undefined>(undefined);
-const supabaseOptionsContext = React.createContext<
-  SupabaseOptions<unknown> | undefined
->(undefined);
+const dbOptionsContext = React.createContext<dbOptions<unknown> | undefined>(undefined);
 
-export type SupabaseProviderProps = {
+export type ClientProviderProps = {
   client: PostgrestClient;
   children: React.ReactNode;
-  options?: SupabaseOptions<unknown>;
 };
 
-export const SupabaseProvider = ({
-  children,
-  client,
-  options = {},
-}: SupabaseProviderProps) => {
-  return (
-    <supabaseOptionsContext.Provider value={options}>
-      <supabase.Provider value={client}>{children}</supabase.Provider>
-    </supabaseOptionsContext.Provider>
-  );
+export const ClientProvider = ({ children, client }: ClientProviderProps) => {
+  return <supabase.Provider value={client}>{children}</supabase.Provider>;
+};
+
+export type DbOptionsProviderProps = {
+  options?: dbOptions<unknown>;
+  children: React.ReactNode;
+};
+
+export const DbOptionsProvider = ({ options = {}, children }: DbOptionsProviderProps) => {
+  return <dbOptionsContext.Provider value={options}>{children}</dbOptionsContext.Provider>;
 };
 
 export const useSupabase = () => {
   const supabaseClient = useContext(supabase);
 
   if (!supabaseClient) {
-    throw new Error("use useSupabase inside the SupabaseProvider tree");
+    throw new Error("use useSupabase inside the ClientProvider tree");
   } else {
     return supabaseClient;
   }
 };
 
-export const useSupabaseOptions = () => {
-  const supabaseOptions = useContext(supabaseOptionsContext);
+export const useDbOptions = () => {
+  const supabaseOptions = useContext(dbOptionsContext);
 
   if (!supabaseOptions) {
-    throw new Error("use useSupabaseOptions inside the SupabaseProvider tree");
+    throw new Error("use useDbOptions inside the DbOptionsProvider tree");
   } else {
     return supabaseOptions;
   }
+};
+
+type SupabaseProviderProps = {
+  children: React.ReactNode;
+  client: PostgrestClient;
+  dbOptions?: dbOptions<unknown>;
+};
+
+export const SupabaseProvider = ({ children, client, dbOptions }: SupabaseProviderProps) => {
+  return (
+    <ClientProvider client={client}>
+      <DbOptionsProvider options={dbOptions}>{children}</DbOptionsProvider>
+    </ClientProvider>
+  );
 };

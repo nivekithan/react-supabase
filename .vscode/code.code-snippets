@@ -1,0 +1,17 @@
+{
+  "Sets Jests environment": {
+    "prefix": "jenv",
+    "body": ["/**", " * @jest-environment jsdom", " */"],
+    "description": "Sets Jests environment to jsdom"
+  },
+  "Imports React": {
+    "prefix": "ir",
+    "body": ["import React from \"react\""],
+    "description": "Imports React"
+  },
+  "Multiline Comment": {
+    "prefix": "ml",
+    "body": ["/*", " *${1:}", " */"],
+    "description": "Multiline Comment"
+  }
+}

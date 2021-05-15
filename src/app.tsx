@@ -1,56 +1,81 @@
+import { renderHook } from "@nivekithan/react-hooks";
 import React, { useState } from "react";
+import { Cache } from "./react-supabase/cache";
 import { db } from "./react-supabase/db";
 import { useDb } from "./react-supabase/useDb";
 
-const userData = db<any, { users: string }>((supabase) => {
-  return supabase
-    .from("users")
-    .select("*")
-    .lt("id", 3)
-    .order("id", { ascending: false })
-    .get();
+const dbAtom = db<unknown, undefined>((supabase) => {
+  return supabase.from("users").select("*").get();
 });
 
+const depDbAtom = db<unknown, undefined>((supabase) => (get, hash) => {
+  const result = get(dbAtom);
+
+  if (result.state === "SUCCESS") {
+    return supabase.from("users").select("*").get();
+  }
+
+  if (result.state === "LOADING") {
+    return {
+      ...result,
+      hash,
+      state: "STALE",
+    };
+  }
+  return {
+    ...result,
+    hash,
+  };
+});
+
+const depAtom2 = db<unknown, undefined>((supabase) => (get, hash) => {
+  const result = get(depDbAtom);
+
+  if (result.state === "SUCCESS") {
+    return supabase.from("users").select("*").get();
+  }
+  if (result.state === "LOADING") {
+    return {
+      ...result,
+      hash,
+      state: "STALE",
+    };
+  }
+  return {
+    ...result,
+    hash,
+  };
+});
 export const App = () => {
-  const [retry, setRetry] = useState(0);
+  // const { state, data } = useDb(userData, "users");
+  const state = "SUCCESS";
+  const [showChildren, setShowChildren] = useState(false);
 
   const onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    setRetry((s) => s + 1);
+    setShowChildren((s) => !s);
   };
 
-  // if (userDataRes.state === "LOADING") {
-  //   console.log(1, "Loading");
-  // } else if (userDataRes.state === "ERROR") {
-  //   console.log(1, "Error", userDataRes.error);
-  // } else {
-  //   console.log(1, userDataRes.state, userDataRes.data, userDataRes.error);
-  // }
+  const logOnClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    console.log(Cache.cache);
+  };
 
   return (
     <div>
       <p>Start of Supabase management</p>
-      <small>{retry}</small>
-      <button onClick={onClick}>Increase retry </button>
-      <Component retry={retry} />
+      {state === "SUCCESS" ? <small>Success</small> : null}
+      <button onClick={onClick}>Shown children </button>
+      <button onClick={logOnClick}>Log Cache object</button>
+      {showChildren ? <Component /> : null}
     </div>
   );
 };
 
-const Component = ({ retry }: { retry: number }) => {
-  const userDataRes = useDb(
-    userData,
-    { users: "users" },
-    { retry, cacheTime: 100_000 }
-  );
+const Component = () => {
+  const result = useDb(depAtom2);
 
-  if (userDataRes.state === "LOADING") {
-    console.log(2, "Loading");
-  } else if (userDataRes.state === "ERROR") {
-    console.log(2, "Error", userDataRes.error);
-  } else {
-    console.log(2, userDataRes.state, userDataRes.data);
-  }
+  console.log(result);
 
   return <div>Children !</div>;
 };
