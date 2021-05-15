@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Cache } from "./cache";
-import { dbOptions, useSupabase } from "./context";
+import { useDbOptions, useSupabase } from "./context";
 import { DbContext } from "./db";
 import { getHash } from "./hash";
 import { Key } from "./key";
@@ -44,26 +44,14 @@ export type DbResult<data> =
  * Overload when the db does not require any arguments
  */
 
-export function useDb<data>(
-  db: DbContext<data, undefined>,
-  args?: undefined,
-  options?: dbOptions<data>
-): DbResult<data>;
+export function useDb<data>(db: DbContext<data, undefined>, args?: undefined): DbResult<data>;
 
 /**
  * Overload when the db does require arguments of type props
  */
-export function useDb<data, props>(
-  db: DbContext<data, props>,
-  args: props,
-  options?: dbOptions<data>
-): DbResult<data>;
+export function useDb<data, props>(db: DbContext<data, props>, args: props): DbResult<data>;
 
-export function useDb<data, props>(
-  db: DbContext<data, props>,
-  args?: props,
-  options?: dbOptions<data>
-): DbResult<data> {
+export function useDb<data, props>(db: DbContext<data, props>, args?: props): DbResult<data> {
   const supabase = useSupabase();
 
   const getSupabaseBuild = useCallback(() => db.createUrl(supabase, args as props), [
@@ -73,7 +61,8 @@ export function useDb<data, props>(
   ]);
 
   const hashString = getHash(db, args as props);
-  const finalOptions = useGetDbOptions(hashString, db.options, options || {});
+  const finalOptions = useGetDbOptions(hashString, db.options);
+  const configOptions = useDbOptions();
 
   const { current: key } = useRef(Key.getUniqueKey());
 
@@ -82,15 +71,15 @@ export function useDb<data, props>(
       try {
         if (force) {
           Cache.cache[hashString].clearCache();
-          new Cache<data>(supabase, getSupabaseBuild, hashString, finalOptions);
+          new Cache<data>(supabase, getSupabaseBuild, hashString, finalOptions, configOptions);
         }
         return Cache.getCache<data>(hashString);
       } catch (err) {
-        new Cache<data>(supabase, getSupabaseBuild, hashString, finalOptions);
+        new Cache<data>(supabase, getSupabaseBuild, hashString, finalOptions, configOptions);
         return Cache.getCache<data>(hashString);
       }
     },
-    [getSupabaseBuild, finalOptions, hashString, supabase]
+    [hashString, supabase, getSupabaseBuild, finalOptions, configOptions]
   );
 
   const [result, setResult] = useState<DbResult<data>>(cache);
