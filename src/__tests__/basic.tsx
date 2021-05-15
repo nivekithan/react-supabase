@@ -134,9 +134,9 @@ describe("Testing basic functionality of Cache class", () => {
       shouldComponentUpdate: () => false,
       stopRefetchTimeout: 2000 * 60,
     };
-    const _ = new Cache(successClient, () => supabase, hash, options);
+    const _ = new Cache(successClient, () => supabase, hash, options, {});
 
-    expect(() => new Cache(successClient, () => supabase, hash, options)).toThrowError(
+    expect(() => new Cache(successClient, () => supabase, hash, options, {})).toThrowError(
       Error(
         `new Cache: There is already a cache with hash ${hash} use Cache.clearCache to remove it before creating a new one`
       )

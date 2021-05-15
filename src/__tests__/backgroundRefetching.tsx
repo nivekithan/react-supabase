@@ -4,12 +4,7 @@
 
 import { db } from "@src/react-supabase/db";
 import { DbResult, useDb } from "@src/react-supabase/useDb";
-import {
-  Renderer,
-  RendererProps,
-  renderHook,
-  Result,
-} from "@nivekithan/react-hooks";
+import { Renderer, renderHook, Result } from "@nivekithan/react-hooks";
 import React from "react";
 import { Wrapper, errorClient, successClient } from "./utils";
 
@@ -19,22 +14,16 @@ describe("Feature: Background fetching", () => {
       return supabase.from("users").select("name").get();
     });
 
-    const { result, waitFor, waitForNextUpdate } = renderHook(
-      () => useDb(dbAtom, undefined),
-      {
-        // eslint-disable-next-line react/prop-types, react/display-name
-        wrapper: ({ children }) => {
-          return (
-            <Wrapper
-              client={successClient}
-              options={{ cacheTime: 100, retry: 0 }}
-            >
-              {children}
-            </Wrapper>
-          );
-        },
-      }
-    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    const { result, waitFor, waitForNextUpdate } = renderHook(() => useDb(dbAtom, undefined), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return (
+          <Wrapper client={successClient} options={{ cacheTime: 100, retry: 0 }}>
+            {children}
+          </Wrapper>
+        );
+      },
+    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -53,22 +42,16 @@ describe("Feature: Background fetching", () => {
       return supabase.from("users").select("name").get();
     });
 
-    const { result, waitFor, waitForNextUpdate } = renderHook(
-      () => useDb(dbAtom, undefined),
-      {
-        // eslint-disable-next-line react/prop-types, react/display-name
-        wrapper: ({ children }) => {
-          return (
-            <Wrapper
-              client={errorClient}
-              options={{ cacheTime: 100, retry: 0 }}
-            >
-              {children}
-            </Wrapper>
-          );
-        },
-      }
-    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    const { result, waitFor, waitForNextUpdate } = renderHook(() => useDb(dbAtom, undefined), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return (
+          <Wrapper client={errorClient} options={{ cacheTime: 100, retry: 0 }}>
+            {children}
+          </Wrapper>
+        );
+      },
+    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "ERROR";
@@ -87,22 +70,19 @@ describe("Feature: Background fetching", () => {
       return supabase.from("users").select("name").get();
     });
 
-    const { result, waitFor, waitForNextUpdate } = renderHook(
-      () => useDb(dbAtom, undefined),
-      {
-        // eslint-disable-next-line react/prop-types, react/display-name
-        wrapper: ({ children }) => {
-          return (
-            <Wrapper
-              client={successClient}
-              options={{ cacheTime: 100, backgroundFetch: false, retry: 0 }}
-            >
-              {children}
-            </Wrapper>
-          );
-        },
-      }
-    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    const { result, waitFor, waitForNextUpdate } = renderHook(() => useDb(dbAtom, undefined), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return (
+          <Wrapper
+            client={successClient}
+            options={{ cacheTime: 100, backgroundFetch: false, retry: 0 }}
+          >
+            {children}
+          </Wrapper>
+        );
+      },
+    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -124,22 +104,19 @@ describe("Feature: Background fetching", () => {
       return supabase.from("users").select("name").get();
     });
 
-    const { result, waitFor, waitForNextUpdate } = renderHook(
-      () => useDb(dbAtom, undefined),
-      {
-        // eslint-disable-next-line react/prop-types, react/display-name
-        wrapper: ({ children }) => {
-          return (
-            <Wrapper
-              client={errorClient}
-              options={{ cacheTime: 100, backgroundFetch: false, retry: 0 }}
-            >
-              {children}
-            </Wrapper>
-          );
-        },
-      }
-    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    const { result, waitFor, waitForNextUpdate } = renderHook(() => useDb(dbAtom, undefined), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return (
+          <Wrapper
+            client={errorClient}
+            options={{ cacheTime: 100, backgroundFetch: false, retry: 0 }}
+          >
+            {children}
+          </Wrapper>
+        );
+      },
+    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "ERROR";

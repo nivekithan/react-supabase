@@ -190,7 +190,8 @@ export class Cache<data> {
       | ((get: Getter, hash: string) => SupabaseBuild | DbResult<data>),
 
     hash: string,
-    options: Required<dbOptions<data>>
+    options: Required<dbOptions<data>>,
+    configOptions: dbOptions<unknown>
   ) {
     if (Cache.cache[hash]) {
       throw new Error(
@@ -213,7 +214,7 @@ export class Cache<data> {
             "If you are creating dependent db, make sure that the first function should always return a function. It seems that you are dynamically changing weather a db is dependent or not"
           );
         } else {
-          const get = createGetter(supabase, hash, options as Required<dbOptions<unknown>>);
+          const get = createGetter(supabase, hash, configOptions);
           const couldBeSupabaseBuild2 = couldBeSupabaseBuild(get, hash);
 
           if ((couldBeSupabaseBuild2 as SupabaseBuild).method) {
@@ -244,7 +245,7 @@ export class Cache<data> {
       } else {
         // We will be creating a temporally cache state
         Cache.fromStatic(hash, options, createSimpleState(hash, "STALE"), reCalculateSupabaseBuild);
-        const get = createGetter(supabase, hash, options as Required<dbOptions<unknown>>);
+        const get = createGetter(supabase, hash, configOptions);
         const couldBeSupabaseBuild2 = couldBeSupabaseBuild(get, hash);
 
         if ((couldBeSupabaseBuild2 as SupabaseBuild).method) {

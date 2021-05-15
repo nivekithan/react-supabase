@@ -2,7 +2,7 @@ import { useEffect, useMemo } from "react";
 import { Cache } from "./cache";
 import { dbOptions, useDbOptions } from "./context";
 
-const defaultDbOptions: Required<dbOptions<unknown>> = {
+export const defaultDbOptions: Required<dbOptions<unknown>> = {
   cacheTime: 3000 * 60,
   backgroundFetch: true,
   shouldComponentUpdate: () => true,
@@ -16,18 +16,14 @@ const defaultDbOptions: Required<dbOptions<unknown>> = {
  * whenever it changes
  */
 
-export const useGetDbOptions = <data>(
-  hash: string,
-  dbOptions: dbOptions<data>,
-  useDbOption: dbOptions<data>
-) => {
+export const useGetDbOptions = <data>(hash: string, dbOptions: dbOptions<data>) => {
   const supabaseOptions = useDbOptions();
 
   const options = useMemo<Required<dbOptions<data>>>(() => {
     const options = { ...defaultDbOptions };
-    Object.assign(options, supabaseOptions, dbOptions, useDbOption);
+    Object.assign(options, supabaseOptions, dbOptions);
     return options;
-  }, [dbOptions, supabaseOptions, useDbOption]);
+  }, [dbOptions, supabaseOptions]);
 
   useEffect(() => {
     Cache.setOptions(hash, options as dbOptions<unknown>);

@@ -4,6 +4,7 @@ import { dbOptions } from "./context";
 import { DbContext } from "./db";
 import { getHash } from "./hash";
 import { DbResult } from "./useDb";
+import { defaultDbOptions } from "./useGetOptions";
 
 export type GetterOptions<data> = {
   shouldReCalculate: (next: DbResult<data>) => boolean;
@@ -36,10 +37,10 @@ export const getterHash: {
   };
 } = {};
 
-export const createGetter = <parentData>(
+export const createGetter = (
   supabase: PostgrestClient,
   hash: string,
-  finalOptions: Required<dbOptions<unknown>>
+  contextOptions: dbOptions<unknown>
 ): Getter => {
   const get: Getter = <data, props>(
     db: DbContext<data, props>,
@@ -56,7 +57,12 @@ export const createGetter = <parentData>(
 
     if (!Cache.cache[localHash]) {
       const getSupabaseBuild = () => db.createUrl(supabase, args as props);
-      new Cache(supabase, getSupabaseBuild, localHash, finalOptions);
+      const finalOptions = {
+        ...defaultDbOptions,
+        ...contextOptions,
+        ...db.options,
+      };
+      new Cache(supabase, getSupabaseBuild, localHash, finalOptions, contextOptions);
       Cache.cache[localHash].fetch();
       Cache.cache[localHash].refetch();
     }

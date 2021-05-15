@@ -193,41 +193,44 @@ describe("Dependent Requests", () => {
   });
 
   test("On recalculating dependent atom it returns state", async () => {
-    const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("*").get();
-    });
-
-    const depDbAtom = db<unknown, undefined>((supabase) => (get, hash) => {
-      const result = get(dbAtom);
-      // console.warn(result)
-      if (result.state === "ERROR") {
+    const dbAtom = db<unknown, undefined>(
+      (supabase) => {
         return supabase.from("users").select("*").get();
-      }
+      },
+      { cacheTime: 200, retry: 0 }
+    );
 
-      if (result.state === "LOADING") {
+    const depDbAtom = db<unknown, undefined>(
+      (supabase) => (get, hash) => {
+        const result = get(dbAtom);
+        // console.warn(result)
+        if (result.state === "ERROR") {
+          return supabase.from("users").select("*").get();
+        }
+
+        if (result.state === "LOADING") {
+          return {
+            ...result,
+            hash,
+            state: "STALE",
+          };
+        }
+
         return {
           ...result,
           hash,
-          state: "STALE",
         };
-      }
-
-      return {
-        ...result,
-        hash,
-      };
-    });
+      },
+      { retry: 0 }
+    );
 
     setSuccessOnTime(3);
-    const { result, waitFor } = renderHook(
-      () => useDb(depDbAtom, undefined, { cacheTime: 200, retry: 0 }),
-      {
-        // eslint-disable-next-line react/prop-types, react/display-name
-        wrapper: ({ children }) => {
-          return <Wrapper client={errorToSuccessClient}>{children}</Wrapper>;
-        },
-      }
-    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    const { result, waitFor } = renderHook(() => useDb(depDbAtom, undefined), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return <Wrapper client={errorToSuccessClient}>{children}</Wrapper>;
+      },
+    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(
       () => {
