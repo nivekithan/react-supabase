@@ -1,32 +1,54 @@
+import { renderHook } from "@nivekithan/react-hooks";
 import React, { useState } from "react";
+import { Cache } from "./react-supabase/cache";
 import { db } from "./react-supabase/db";
-import { deDb, useDeDb } from "./react-supabase/deDb";
 import { useDb } from "./react-supabase/useDb";
 
-const userData = db<{ id: number; userName: string }, string>(
-  (supabase, table) => {
-    return supabase.from(table).select("*").eq("id", 3).get();
+const dbAtom = db<unknown, undefined>((supabase) => {
+  return supabase.from("users").select("*").get();
+});
+
+const depDbAtom = db<unknown, undefined>((supabase) => (get, hash) => {
+  const result = get(dbAtom);
+
+  if (result.state === "SUCCESS") {
+    return supabase.from("users").select("*").get();
   }
-);
 
-const plus1User = deDb<{ id: number; userName: string }, string>(
-  (supabase) => (get) => {
-    const result = get(userData, "users");
-
-    if (result.state === "SUCCESS") {
-      return supabase
-        .from("users")
-        .select("*")
-        .eq("id", result.data[0].id + 1)
-        .get();
-    } else {
-      return supabase.from("users").select("*").eq("id", 1).get();
-    }
+  if (result.state === "LOADING") {
+    return {
+      ...result,
+      hash,
+      state: "STALE",
+    };
   }
-);
+  return {
+    ...result,
+    hash,
+  };
+});
 
+const depAtom2 = db<unknown, undefined>((supabase) => (get, hash) => {
+  const result = get(depDbAtom);
+
+  if (result.state === "SUCCESS") {
+    return supabase.from("users").select("*").get();
+  }
+  if (result.state === "LOADING") {
+    return {
+      ...result,
+      hash,
+      state: "STALE",
+    };
+  }
+  return {
+    ...result,
+    hash,
+  };
+});
 export const App = () => {
-  const { state, data } = useDb(userData, "users");
+  // const { state, data } = useDb(userData, "users");
+  const state = "SUCCESS";
   const [showChildren, setShowChildren] = useState(false);
 
   const onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -34,18 +56,24 @@ export const App = () => {
     setShowChildren((s) => !s);
   };
 
+  const logOnClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    console.log(Cache.cache);
+  };
+
   return (
     <div>
       <p>Start of Supabase management</p>
       {state === "SUCCESS" ? <small>Success</small> : null}
       <button onClick={onClick}>Shown children </button>
+      <button onClick={logOnClick}>Log Cache object</button>
       {showChildren ? <Component /> : null}
     </div>
   );
 };
 
 const Component = () => {
-  const result = useDeDb(plus1User, "users");
+  const result = useDb(depAtom2);
 
   console.log(result);
 

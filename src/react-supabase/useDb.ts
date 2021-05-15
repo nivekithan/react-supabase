@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Cache, fetchData } from "./cache";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Cache } from "./cache";
 import { dbOptions, useSupabase } from "./context";
-import { DbContext, CreateUrl } from "./db";
+import { DbContext } from "./db";
 import { getHash } from "./hash";
 import { Key } from "./key";
+import { Sync } from "./sync";
 import { useGetDbOptions } from "./useGetOptions";
 
 export type PostgrestError = {
@@ -16,7 +17,7 @@ export type PostgrestError = {
 export type DbResult<data> =
   | {
       state: "SUCCESS";
-      data: data[];
+      data: data;
       error: undefined;
       status: number;
       statusText: string;
@@ -65,50 +66,64 @@ export function useDb<data, props>(
 ): DbResult<data> {
   const supabase = useSupabase();
 
-  const supabaseBuild = useMemo(() => {
-    return typeof args !== "undefined"
-      ? db.createUrl(supabase, args)
-      : (db.createUrl as CreateUrl<undefined>)(supabase);
-  }, [args, db, supabase]);
+  const getSupabaseBuild = useCallback(() => db.createUrl(supabase, args as props), [
+    args,
+    db,
+    supabase,
+  ]);
 
   const hashString = getHash(db, args as props);
   const finalOptions = useGetDbOptions(hashString, db.options, options || {});
 
   const { current: key } = useRef(Key.getUniqueKey());
 
-  const cache = () => {
-    try {
-      return Cache.getCache<data>(hashString);
-    } catch (err) {
-      new Cache(
-        hashString,
-        supabaseBuild,
-        finalOptions as Required<dbOptions<unknown>>
-      );
-      return Cache.getCache<data>(hashString);
-    }
-  };
+  const cache = useCallback(
+    (force?: boolean) => {
+      try {
+        if (force) {
+          Cache.cache[hashString].clearCache();
+          new Cache<data>(supabase, getSupabaseBuild, hashString, finalOptions);
+        }
+        return Cache.getCache<data>(hashString);
+      } catch (err) {
+        new Cache<data>(supabase, getSupabaseBuild, hashString, finalOptions);
+        return Cache.getCache<data>(hashString);
+      }
+    },
+    [getSupabaseBuild, finalOptions, hashString, supabase]
+  );
 
   const [result, setResult] = useState<DbResult<data>>(cache);
+  const sync = new Sync(Cache.cache[hashString].__sync);
 
   useEffect(() => {
     let isMounted = true;
 
     const { shouldComponentUpdate } = finalOptions;
 
-    const unSubscribe = Cache.subscribe<data>(
+    // Main subscriptions
+    const mainUnSubscribe = Cache.subscribe<data>(
       hashString,
       (cache) => {
-        shouldComponentUpdate(result, cache) && isMounted && setResult(cache);
+        if (isMounted) {
+          sync.current = Cache.cache[hashString].__sync;
+          shouldComponentUpdate(result, cache) && setResult(cache);
+        }
+      },
+      (__sync, cache) => {
+        if (sync.current !== __sync) {
+          sync.current = __sync;
+          isMounted && setResult(cache);
+        }
       },
       { unique: key }
     );
 
     return () => {
       isMounted = false;
-      unSubscribe();
+      mainUnSubscribe();
     };
-  }, [supabaseBuild, hashString, setResult, key, result, finalOptions]);
+  }, [finalOptions, hashString, key, result]);
 
   /**
    * SetInterval delays the execution functions by the specified time so
@@ -116,12 +131,12 @@ export function useDb<data, props>(
    */
 
   useEffect(() => {
-    const cache = Cache.getCache(hashString);
+    const cache = Cache.getCache<data>(hashString);
 
     if (cache.state === "STALE") {
-      fetchData(hashString, supabaseBuild);
+      Cache.cache[hashString].fetch(false);
     }
-  }, [hashString, supabaseBuild]);
+  }, [hashString]);
 
   return result;
 }

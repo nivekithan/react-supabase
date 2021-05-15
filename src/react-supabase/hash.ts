@@ -1,9 +1,10 @@
 import type { DbContext } from "./db";
-import type { DeDbContext } from "./deDb";
 
 const stableStringifyReplacer = (_key: string, value: any): unknown => {
   if (typeof value === "function") {
-    throw new Error("Cannot stringify non JSON value");
+    throw new Error(
+      "Cannot serialize non JSON value, use setHashFunction to override default function"
+    );
   }
 
   if (isObject(value)) {
@@ -58,10 +59,7 @@ export const setHashFunction = (
   };
 };
 
-export const getHash = <data, props>(
-  db: DbContext<data, props> | DeDbContext<data, props>,
-  value: props
-) => {
+export const getHash = <data, props>(db: DbContext<data, props>, value: props) => {
   const hashString = hash.isHashFunProvided
     ? hash.providedHashFun(value)
     : hash.defaultHashFun(value);

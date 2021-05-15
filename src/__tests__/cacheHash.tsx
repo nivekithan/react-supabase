@@ -10,24 +10,47 @@ import { setHashFunction } from "@src/react-supabase/hash";
 import { DbResult, useDb } from "@src/react-supabase/useDb";
 
 describe("Feature: Cache Hash", () => {
+  test("If props contains non JSON-serializable value, then hash should throw error", async () => {
+    const dbAtom = db<unknown, () => void>((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
+    const { result } = renderHook(
+      () =>
+        useDb(dbAtom, () => {
+          return;
+        }),
+      {
+        // eslint-disable-next-line react/prop-types, react/display-name
+        wrapper: ({ children }) => {
+          return (
+            <Wrapper client={successClient} options={{ cacheTime: 300000, retry: 0 }}>
+              {children}
+            </Wrapper>
+          );
+        },
+      }
+    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+
+    expect(result.error).toEqual(
+      Error("Cannot serialize non JSON value, use setHashFunction to override default function")
+    );
+  });
+
   test("Success: If hash is same no additional requests should be made to server", async () => {
-    const dbAtom = db<unknown, undefined>((supabase) => {
+    const dbAtom = db<unknown, { name: { first: string; second: string } }>((supabase) => {
       return supabase.from("users").select("name").get();
     });
 
     const { result, waitFor } = renderHook(
       () => ({
-        first: useDb(dbAtom, undefined),
-        second: useDb(dbAtom, undefined),
+        first: useDb(dbAtom, { name: { first: "fafa", second: "afad" } }),
+        second: useDb(dbAtom, { name: { second: "afad", first: "fafa" } }),
       }),
       {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              client={successClient}
-              options={{ cacheTime: 300000, retry: 0 }}
-            >
+            <Wrapper client={successClient} options={{ cacheTime: 300000, retry: 0 }}>
               {children}
             </Wrapper>
           );
@@ -40,10 +63,7 @@ describe("Feature: Cache Hash", () => {
     >;
 
     await waitFor(() => {
-      return (
-        result.current.first.state === "SUCCESS" &&
-        result.current.second.state === "SUCCESS"
-      );
+      return result.current.first.state === "SUCCESS" && result.current.second.state === "SUCCESS";
     });
     expect(ServerData.times).toBe(1);
   });
@@ -57,16 +77,12 @@ describe("Feature: Cache Hash", () => {
       () => ({
         first: useDb(dbAtom, undefined),
         second: useDb(dbAtom, undefined),
-        third: useDb(dbAtom, undefined),
       }),
       {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              client={errorClient}
-              options={{ cacheTime: 300000, retry: 0 }}
-            >
+            <Wrapper client={errorClient} options={{ cacheTime: 300000, retry: 0 }}>
               {children}
             </Wrapper>
           );
@@ -77,16 +93,12 @@ describe("Feature: Cache Hash", () => {
       {
         first: DbResult<unknown>;
         second: DbResult<unknown>;
-        third: DbResult<unknown>;
       },
       Renderer<unknown>
     >;
 
     await waitFor(() => {
-      return (
-        result.current.first.state === "ERROR" &&
-        result.current.second.state === "ERROR"
-      );
+      return result.current.first.state === "ERROR" && result.current.second.state === "ERROR";
     });
     expect(ServerData.times).toBe(1);
   });
@@ -105,10 +117,7 @@ describe("Feature: Cache Hash", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              client={successClient}
-              options={{ cacheTime: 300000, retry: 0 }}
-            >
+            <Wrapper client={successClient} options={{ cacheTime: 300000, retry: 0 }}>
               {children}
             </Wrapper>
           );
@@ -121,10 +130,7 @@ describe("Feature: Cache Hash", () => {
     >;
 
     await waitFor(() => {
-      return (
-        result.current.first.state === "SUCCESS" &&
-        result.current.second.state === "SUCCESS"
-      );
+      return result.current.first.state === "SUCCESS" && result.current.second.state === "SUCCESS";
     });
     expect(ServerData.times).toBe(2);
   });
@@ -142,10 +148,7 @@ describe("Feature: Cache Hash", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              client={errorClient}
-              options={{ cacheTime: 300000, retry: 0 }}
-            >
+            <Wrapper client={errorClient} options={{ cacheTime: 300000, retry: 0 }}>
               {children}
             </Wrapper>
           );
@@ -158,10 +161,7 @@ describe("Feature: Cache Hash", () => {
     >;
 
     await waitFor(() => {
-      return (
-        result.current.first.state === "ERROR" &&
-        result.current.second.state === "ERROR"
-      );
+      return result.current.first.state === "ERROR" && result.current.second.state === "ERROR";
     });
     expect(ServerData.times).toBe(2);
   });
@@ -185,10 +185,7 @@ describe("Feature: Cache Hash", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              client={successClient}
-              options={{ cacheTime: 300000, retry: 0 }}
-            >
+            <Wrapper client={successClient} options={{ cacheTime: 300000, retry: 0 }}>
               {children}
             </Wrapper>
           );
@@ -201,10 +198,7 @@ describe("Feature: Cache Hash", () => {
     >;
 
     await waitFor(() => {
-      return (
-        result.current.first.state === "SUCCESS" &&
-        result.current.second.state === "SUCCESS"
-      );
+      return result.current.first.state === "SUCCESS" && result.current.second.state === "SUCCESS";
     });
 
     expect(ServerData.times).toBe(2);
@@ -229,10 +223,7 @@ describe("Feature: Cache Hash", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              client={errorClient}
-              options={{ cacheTime: 300000, retry: 0 }}
-            >
+            <Wrapper client={errorClient} options={{ cacheTime: 300000, retry: 0 }}>
               {children}
             </Wrapper>
           );
@@ -245,10 +236,7 @@ describe("Feature: Cache Hash", () => {
     >;
 
     await waitFor(() => {
-      return (
-        result.current.first.state === "ERROR" &&
-        result.current.second.state === "ERROR"
-      );
+      return result.current.first.state === "ERROR" && result.current.second.state === "ERROR";
     });
 
     expect(ServerData.times).toBe(2);
@@ -267,11 +255,9 @@ describe("Feature: Override default Hash function", () => {
       };
     });
 
-    const dbAtom = db<unknown, { key: number; someFun: () => string }>(
-      (supabase) => {
-        return supabase.from("users").select("name").get();
-      }
-    );
+    const dbAtom = db<unknown, { key: number; someFun: () => string }>((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
 
     const { result } = renderHook(
       () => ({
@@ -282,10 +268,7 @@ describe("Feature: Override default Hash function", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              client={successClient}
-              options={{ retry: 0, clearCacheTimeout: 200 }}
-            >
+            <Wrapper client={successClient} options={{ retry: 0, clearCacheTimeout: 200 }}>
               {children}
             </Wrapper>
           );
@@ -310,11 +293,9 @@ describe("Feature: Override default Hash function", () => {
       };
     });
 
-    const dbAtom = db<unknown, { key: number; someFun: () => string }>(
-      (supabase) => {
-        return supabase.from("users").select("name").get();
-      }
-    );
+    const dbAtom = db<unknown, { key: number; someFun: () => string }>((supabase) => {
+      return supabase.from("users").select("name").get();
+    });
 
     const { result } = renderHook(
       () => ({
@@ -325,10 +306,7 @@ describe("Feature: Override default Hash function", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              client={errorClient}
-              options={{ retry: 0, clearCacheTimeout: 200 }}
-            >
+            <Wrapper client={errorClient} options={{ retry: 0, clearCacheTimeout: 200 }}>
               {children}
             </Wrapper>
           );

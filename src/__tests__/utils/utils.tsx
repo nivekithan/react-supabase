@@ -2,27 +2,29 @@
 import {
   createClient,
   DbOptionsProviderProps,
-  ClientProvider,
   ClientProviderProps,
-  DbOptionsProvider,
+  SupabaseProvider,
 } from "@src/react-supabase/context";
 import { WrapperComponent } from "@nivekithan/react-hooks";
 import React from "react";
 
 export const KEY = "1234567890-test-key";
 export const url = {
-  success: "https://test_url/sucess",
+  success: "https://test_url/success",
   error: "https://test_url/error",
   errorToSuccess: "https://test_url/errortosuccess",
+  dynamicSuccess: "https://test_url/dynamicsuccess",
 };
 
-export const Wrapper: WrapperComponent<
-  ClientProviderProps & DbOptionsProviderProps
-> = ({ children, client, options = {} }) => {
+export const Wrapper: WrapperComponent<ClientProviderProps & DbOptionsProviderProps> = ({
+  children,
+  client,
+  options = {},
+}) => {
   return (
-    <ClientProvider client={client}>
-      <DbOptionsProvider options={options}>{children}</DbOptionsProvider>
-    </ClientProvider>
+    <SupabaseProvider client={client} dbOptions={options}>
+      {children}
+    </SupabaseProvider>
   );
 };
 
@@ -38,5 +40,10 @@ export const errorClient = createClient({
 
 export const errorToSuccessClient = createClient({
   url: url.errorToSuccess,
+  key: KEY,
+});
+
+export const dynamicSuccessClient = createClient({
+  url: url.dynamicSuccess,
   key: KEY,
 });
