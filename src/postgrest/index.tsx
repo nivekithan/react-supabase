@@ -1,1 +1,1 @@
-export { PostgrestClient } from "./postgrestClient";
+export { PostgrestQueryBuilder } from "./lib/postgrestQueryBuilder";

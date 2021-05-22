@@ -3,7 +3,13 @@ import { DbResult } from "./useDb";
 import { fetch } from "cross-fetch";
 import { dbOptions } from "./context";
 import { createGetter, Getter, getterHash } from "./getter";
-import { PostgrestClient } from "@src/postgrest";
+import { SupabaseClient } from "@src/supbase-js/supabaseClient";
+import { Subscription } from "@supabase/gotrue-js";
+
+type AuthSubsObj = {
+  data: Subscription | null;
+  error: Error | null;
+};
 
 type CacheHash<data> = {
   // Type of Cache
@@ -16,11 +22,11 @@ type CacheHash<data> = {
   hash: string;
 
   subscribers: {
-    [key: string]: (cache: DbResult<data>) => void;
+    [key: string]: (cache: DbResult<data>, force: boolean) => void;
   };
 
   // Recalculates the supabaseBuild
-  reCalculateSupabaseBuild: () => void;
+  reCalculateSupabaseBuild: (fetch?: boolean) => void;
   /*
    * Fetches the data and sets it to cache
    */
@@ -34,8 +40,8 @@ type CacheHash<data> = {
    */
   refetchingTimeToken: NodeJS.Timeout | undefined;
   refetch: (force?: boolean, immediate?: boolean) => void;
-  stopRefetch: () => void;
-
+  stopRefetch: (setCanceled?: boolean) => void;
+  fetchCanceled: boolean;
   /*
    * If for time `stopRefetchingToken` the cache has no subscribers we will
    * stop refetching using `stopRefetching`
@@ -43,7 +49,7 @@ type CacheHash<data> = {
    * stopStopRefetching can be used to stop this process
    */
   stopRefetchingToken: NodeJS.Timeout | undefined;
-  stopRefetchWithDelay: (force?: boolean) => void;
+  stopRefetchWithDelay: (force?: boolean, setCanceled?: boolean) => void;
   stopStopRefetch: () => void;
 
   /*
@@ -56,11 +62,18 @@ type CacheHash<data> = {
   clearCache: () => void;
   clearCacheWithDelay: () => void;
   stopClearCache: () => void;
+
+  /*
+   * The object returned from supabase.auth.onAuthStateChange
+   */
+
+  subsObj?: AuthSubsObj;
 } & Required<dbOptions<unknown>> &
   (SupabaseBuild | Record<keyof SupabaseBuild, undefined>);
 
 type SetCacheOptions = {
   backgroundFetch?: boolean;
+  force?: boolean;
 };
 
 export class Cache<data> {
@@ -84,14 +97,14 @@ export class Cache<data> {
         `Cache.setCache: There is no cache with hash ${hash} use new Cache() to create new Cache`
       );
     } else {
-      const { backgroundFetch = false } = options;
+      const { backgroundFetch = false, force = false } = options;
 
       Cache.cache[hash].result = value;
       Cache.cache[hash].__sync++;
 
       if (!backgroundFetch || ["SUCCESS", "ERROR"].includes(value.state)) {
         Object.values(Cache.cache[hash].subscribers).forEach((doOnChange) => {
-          doOnChange(value);
+          doOnChange(value, force);
         });
       }
     }
@@ -99,7 +112,7 @@ export class Cache<data> {
 
   static subscribe<data>(
     hash: string,
-    callOnChange: (cache: DbResult<data>) => void,
+    callOnChange: (cache: DbResult<data>, force: boolean) => void,
     afterSubscribed: (sync: number, cache: DbResult<data>) => void,
     options: {
       unique: string;
@@ -110,7 +123,8 @@ export class Cache<data> {
       Cache.cache[hash].stopStopRefetch();
 
       Cache.cache[hash].subscribers[options.unique] = callOnChange as (
-        cache: DbResult<unknown>
+        cache: DbResult<unknown>,
+        force: boolean
       ) => void;
       Cache.cache[hash].refetch();
       afterSubscribed(Cache.cache[hash].__sync, Cache.getCache(hash));
@@ -134,14 +148,14 @@ export class Cache<data> {
         delete Cache.cache[hash].subscribers[options.unique];
 
         if (Object.values(Cache.cache[hash].subscribers).length === 0) {
-          Cache.cache[hash].stopRefetchWithDelay();
+          Cache.cache[hash].stopRefetchWithDelay(false, true);
           Cache.cache[hash].clearCacheWithDelay();
         }
       }
     };
   }
 
-  static fromSupabaseBuild<data>(
+  private static fromSupabaseBuild<data>(
     hash: string,
     supabaseBuild: SupabaseBuild,
     options: Required<dbOptions<data>>,
@@ -162,7 +176,7 @@ export class Cache<data> {
     );
   }
 
-  static fromStatic<data>(
+  private static fromStatic<data>(
     hash: string,
     options: Required<dbOptions<data>>,
     result: DbResult<data>,
@@ -184,7 +198,7 @@ export class Cache<data> {
   }
 
   constructor(
-    supabase: PostgrestClient,
+    supabase: SupabaseClient,
     createSupabaseBuild: () =>
       | SupabaseBuild
       | ((get: Getter, hash: string) => SupabaseBuild | DbResult<data>),
@@ -200,19 +214,25 @@ export class Cache<data> {
     } else {
       const couldBeSupabaseBuild = createSupabaseBuild();
 
-      const reCalculateSupabaseBuild = () => {
+      const reCalculateSupabaseBuild = (fetch = true) => {
         const couldBeSupabaseBuild = createSupabaseBuild();
 
-        Object.values(getterHash[hash]).map((unSubscribe) => {
+        Object.values(getterHash[hash] || {}).map((unSubscribe) => {
           unSubscribe();
         });
 
         delete getterHash[hash];
 
         if (typeof couldBeSupabaseBuild !== "function") {
-          throw new Error(
-            "If you are creating dependent db, make sure that the first function should always return a function. It seems that you are dynamically changing weather a db is dependent or not"
-          );
+          Cache.cache[hash].url = couldBeSupabaseBuild.url;
+          Cache.cache[hash].method = couldBeSupabaseBuild.method;
+          Cache.cache[hash].headers = couldBeSupabaseBuild.headers;
+          Cache.cache[hash].__type = "SERVER";
+
+          if (fetch) {
+            !Cache.cache[hash].fetchCanceled && Cache.cache[hash].fetch();
+            !Cache.cache[hash].fetchCanceled && Cache.cache[hash].refetch();
+          }
         } else {
           const get = createGetter(supabase, hash, configOptions);
           const couldBeSupabaseBuild2 = couldBeSupabaseBuild(get, hash);
@@ -223,8 +243,10 @@ export class Cache<data> {
             Cache.cache[hash].headers = (couldBeSupabaseBuild2 as SupabaseBuild).headers;
             Cache.cache[hash].__type = "SERVER";
 
-            Cache.cache[hash].fetch();
-            Cache.cache[hash].refetch();
+            if (fetch) {
+              !Cache.cache[hash].fetchCanceled && Cache.cache[hash].fetch();
+              !Cache.cache[hash].fetchCanceled && Cache.cache[hash].refetch();
+            }
             return;
           } else {
             Cache.cache[hash].url = undefined;
@@ -241,10 +263,72 @@ export class Cache<data> {
 
       if (typeof couldBeSupabaseBuild !== "function") {
         Cache.fromSupabaseBuild(hash, couldBeSupabaseBuild, options, reCalculateSupabaseBuild);
+
+        const subsObj = supabase.auth.onAuthStateChange((e, session) => {
+          switch (typeof options.resetCacheOnAuthChange) {
+            case "boolean":
+              if (options.resetCacheOnAuthChange) {
+                Cache.setCache(hash, createSimpleState(hash, "STALE"), {
+                  backgroundFetch: false,
+                  force: true,
+                });
+                Cache.cache[hash].reCalculateSupabaseBuild();
+                return;
+              } else {
+                Cache.cache[hash].reCalculateSupabaseBuild(false);
+                return;
+              }
+            case "function":
+              if (options.resetCacheOnAuthChange(e, session)) {
+                Cache.setCache(hash, createSimpleState(hash, "STALE"), {
+                  backgroundFetch: false,
+                  force: true,
+                });
+                Cache.cache[hash].reCalculateSupabaseBuild();
+                return;
+              } else {
+                Cache.cache[hash].reCalculateSupabaseBuild(false);
+                return;
+              }
+          }
+        });
+        Cache.cache[hash].subsObj = subsObj;
+
         return;
       } else {
         // We will be creating a temporally cache state
         Cache.fromStatic(hash, options, createSimpleState(hash, "STALE"), reCalculateSupabaseBuild);
+
+        const subsObj = supabase.auth.onAuthStateChange((e, session) => {
+          switch (typeof options.resetCacheOnAuthChange) {
+            case "boolean":
+              if (options.resetCacheOnAuthChange) {
+                Cache.setCache(hash, createSimpleState(hash, "STALE"), {
+                  backgroundFetch: false,
+                  force: true,
+                });
+                Cache.cache[hash].reCalculateSupabaseBuild();
+                return;
+              } else {
+                Cache.cache[hash].reCalculateSupabaseBuild(false);
+                return;
+              }
+            case "function":
+              if (options.resetCacheOnAuthChange(e, session)) {
+                Cache.setCache(hash, createSimpleState(hash, "STALE"), {
+                  backgroundFetch: false,
+                  force: true,
+                });
+                Cache.cache[hash].reCalculateSupabaseBuild();
+                return;
+              } else {
+                Cache.cache[hash].reCalculateSupabaseBuild(false);
+                return;
+              }
+          }
+        });
+        Cache.cache[hash].subsObj = subsObj;
+
         const get = createGetter(supabase, hash, configOptions);
         const couldBeSupabaseBuild2 = couldBeSupabaseBuild(get, hash);
 
@@ -301,7 +385,7 @@ export class Cache<data> {
       };
 
       if (typeof options.cacheTime !== "undefined") {
-        Cache.cache[hash].refetch();
+        !Cache.cache[hash].fetchCanceled && Cache.cache[hash].refetch();
       }
     } else {
       throw new Error(
@@ -315,11 +399,7 @@ type FetchDataIntervalOptions = {
   interval: number;
 };
 
-const fetchDataWithInterval = (
-  hash: string,
-  supabaseBuild: SupabaseBuild,
-  options: FetchDataIntervalOptions
-) => {
+const fetchDataWithInterval = (hash: string, options: FetchDataIntervalOptions) => {
   const { interval } = options;
   const cache = () => {
     return Cache.getCache<unknown>(hash);
@@ -332,7 +412,7 @@ const fetchDataWithInterval = (
         backgroundFetch,
       });
       if (cache().state === "STALE") {
-        fetchData(hash, supabaseBuild, { backgroundFetch });
+        fetchData(hash, { backgroundFetch });
       }
     } catch (err) {
       return;
@@ -346,14 +426,21 @@ type FetchDataOptions = {
   backgroundFetch?: boolean;
 };
 
-export const fetchData = async (
-  hash: string,
-  supabaseBuild: SupabaseBuild,
-  options: FetchDataOptions = {}
-) => {
+export const fetchData = async (hash: string, options: FetchDataOptions = {}) => {
   try {
     const { backgroundFetch } = options;
     const retry = Cache.getOptions(hash, "retry");
+
+    const url = Cache.cache[hash].url;
+    const headers = Cache.cache[hash].headers;
+    const method = Cache.cache[hash].method;
+
+    if (!(url && headers && method)) {
+      throw new Error(
+        "Any one of the url, headers, method is undefined: " + url + headers + method
+      );
+    }
+
     Cache.setCache(hash, createSimpleState(hash, "LOADING"), {
       backgroundFetch,
     });
@@ -361,9 +448,9 @@ export const fetchData = async (
     let dbResult: DbResult<unknown> = createSimpleState(hash, "STALE");
 
     do {
-      const result = await fetch(supabaseBuild.url.toString(), {
-        headers: supabaseBuild.headers,
-        method: supabaseBuild.method,
+      const result = await fetch(url.toString(), {
+        headers: headers,
+        method: method,
       });
 
       if (result.ok) {
@@ -420,7 +507,8 @@ const createCacheHash = (
   result: DbResult<unknown>,
   supabaseBuild: SupabaseBuild | Record<keyof SupabaseBuild, undefined>,
   options: Required<dbOptions<unknown>>,
-  reCalculateSupabaseBuild: () => void
+  reCalculateSupabaseBuild: () => void,
+  authSubsObj?: AuthSubsObj
 ): CacheHash<unknown> => {
   return {
     // TYPE
@@ -444,6 +532,10 @@ const createCacheHash = (
     reCalculateSupabaseBuild,
 
     fetch(backgroundFetch?: boolean) {
+      if (Cache.cache[hash].fetchCanceled) {
+        Cache.cache[hash].fetchCanceled = false;
+      }
+
       const url = this.url;
       const method = this.method;
       const headers = this.headers;
@@ -452,14 +544,18 @@ const createCacheHash = (
         if (typeof backgroundFetch === "undefined") {
           backgroundFetch = Cache.getOptions(hash, "backgroundFetch");
         }
-        fetchData(hash, { url, method, headers }, { backgroundFetch });
+        fetchData(hash, { backgroundFetch });
       }
     },
 
-    stopRefetch: () => {
+    stopRefetch: (setCanceled?: boolean) => {
       /**
        * If there is not a timeToken then we wont clear it
        */
+
+      if (setCanceled) {
+        Cache.cache[hash].fetchCanceled = true;
+      }
 
       const timeToken = Cache.cache[hash].refetchingTimeToken;
 
@@ -470,6 +566,11 @@ const createCacheHash = (
     },
 
     refetch(force?: boolean, immediate?: boolean) {
+      if (Cache.cache[hash].fetchCanceled) {
+        Cache.cache[hash].fetchCanceled = false;
+        immediate = true;
+      }
+
       /**
        *
        * If there is already timeToken then refetching is already in progress
@@ -497,13 +598,13 @@ const createCacheHash = (
       const headers = this.headers;
 
       if (url && method && headers) {
-        const timeToken = fetchDataWithInterval(hash, { url, method, headers }, { interval });
+        const timeToken = fetchDataWithInterval(hash, { interval });
 
         Cache.cache[hash].refetchingTimeToken = timeToken;
       }
     },
 
-    stopRefetchWithDelay(force?: boolean) {
+    stopRefetchWithDelay(force?: boolean, setCanceled?: boolean) {
       const stopRefetchingToken = Cache.cache[hash].stopRefetchingToken;
 
       if (stopRefetchingToken) {
@@ -517,7 +618,7 @@ const createCacheHash = (
       }
 
       const timeToken = setTimeout(() => {
-        Cache.cache[hash]?.stopRefetch();
+        Cache.cache[hash]?.stopRefetch(setCanceled);
       }, Cache.getOptions(hash, "stopRefetchTimeout"));
 
       Cache.cache[hash].stopRefetchingToken = timeToken;
@@ -537,6 +638,7 @@ const createCacheHash = (
     clearCache() {
       Cache.cache[hash].stopRefetch();
       Cache.cache[hash].stopStopRefetch();
+      Cache.cache[hash].subsObj?.data?.unsubscribe();
 
       const clearCacheToken = Cache.cache[hash].clearCacheToken;
 
@@ -585,5 +687,9 @@ const createCacheHash = (
       clearTimeout(clearCacheToken);
       Cache.cache[hash].clearCacheToken = undefined;
     },
+
+    ...authSubsObj,
+
+    fetchCanceled: false,
   };
 };

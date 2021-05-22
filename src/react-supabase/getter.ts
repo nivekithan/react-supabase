@@ -1,4 +1,4 @@
-import { PostgrestClient } from "@src/postgrest";
+import { SupabaseClient } from "@src/supbase-js/supabaseClient";
 import { Cache } from "./cache";
 import { dbOptions } from "./context";
 import { DbContext } from "./db";
@@ -38,7 +38,7 @@ export const getterHash: {
 } = {};
 
 export const createGetter = (
-  supabase: PostgrestClient,
+  supabase: SupabaseClient,
   hash: string,
   contextOptions: dbOptions<unknown>
 ): Getter => {

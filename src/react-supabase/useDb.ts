@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Cache } from "./cache";
 import { useDbOptions, useSupabase } from "./context";
 import { DbContext } from "./db";
@@ -66,21 +66,14 @@ export function useDb<data, props>(db: DbContext<data, props>, args?: props): Db
 
   const { current: key } = useRef(Key.getUniqueKey());
 
-  const cache = useCallback(
-    (force?: boolean) => {
-      try {
-        if (force) {
-          Cache.cache[hashString].clearCache();
-          new Cache<data>(supabase, getSupabaseBuild, hashString, finalOptions, configOptions);
-        }
-        return Cache.getCache<data>(hashString);
-      } catch (err) {
-        new Cache<data>(supabase, getSupabaseBuild, hashString, finalOptions, configOptions);
-        return Cache.getCache<data>(hashString);
-      }
-    },
-    [hashString, supabase, getSupabaseBuild, finalOptions, configOptions]
-  );
+  const cache = useCallback(() => {
+    try {
+      return Cache.getCache<data>(hashString);
+    } catch (err) {
+      new Cache<data>(supabase, getSupabaseBuild, hashString, finalOptions, configOptions);
+      return Cache.getCache<data>(hashString);
+    }
+  }, [hashString, supabase, getSupabaseBuild, finalOptions, configOptions]);
 
   const [result, setResult] = useState<DbResult<data>>(cache);
   const sync = new Sync(Cache.cache[hashString].__sync);
@@ -93,9 +86,14 @@ export function useDb<data, props>(db: DbContext<data, props>, args?: props): Db
     // Main subscriptions
     const mainUnSubscribe = Cache.subscribe<data>(
       hashString,
-      (cache) => {
+      (cache, force) => {
         if (isMounted) {
           sync.current = Cache.cache[hashString].__sync;
+
+          if (force) {
+            setResult(cache);
+            return;
+          }
           shouldComponentUpdate(result, cache) && setResult(cache);
         }
       },

@@ -9,6 +9,7 @@ export const defaultDbOptions: Required<dbOptions<unknown>> = {
   retry: 3,
   stopRefetchTimeout: 3000 * 60,
   clearCacheTimeout: 3000 * 60 * 10,
+  resetCacheOnAuthChange: true,
 };
 
 /**

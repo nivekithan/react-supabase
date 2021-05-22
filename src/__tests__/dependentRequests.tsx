@@ -3,7 +3,6 @@
  */
 
 import { Renderer, renderHook, Result } from "@nivekithan/react-hooks";
-import { Cache } from "@src/react-supabase/cache";
 import { db } from "@src/react-supabase/db";
 import { DbResult, useDb } from "@src/react-supabase/useDb";
 import React from "react";
@@ -225,7 +224,7 @@ describe("Dependent Requests", () => {
     );
 
     setSuccessOnTime(3);
-    const { result, waitFor } = renderHook(() => useDb(depDbAtom, undefined), {
+    const { result, waitFor } = renderHook(() => useDb(depDbAtom), {
       // eslint-disable-next-line react/prop-types, react/display-name
       wrapper: ({ children }) => {
         return <Wrapper client={errorToSuccessClient}>{children}</Wrapper>;
@@ -281,6 +280,27 @@ describe("Dependent Requests", () => {
     result2.render();
     await result2.waitFor(() => {
       return result2.result.current.state === "SUCCESS";
+    });
+  });
+
+  test("dependent request always return supabaseBuild", async () => {
+    const dbAtom = db<unknown, undefined>((supabase) => {
+      return supabase.from("users").select("*").get();
+    });
+
+    const depDbAtom = db<unknown, undefined>((supabase) => () => {
+      return supabase.from("users").select("*").get();
+    });
+
+    const { result, waitFor } = renderHook(() => useDb(depDbAtom), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return <Wrapper client={successClient}>{children}</Wrapper>;
+      },
+    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+
+    await waitFor(() => {
+      return result.current.state === "SUCCESS";
     });
   });
 });

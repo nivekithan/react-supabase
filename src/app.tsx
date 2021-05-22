@@ -1,51 +1,32 @@
-import { renderHook } from "@nivekithan/react-hooks";
 import React, { useState } from "react";
-import { Cache } from "./react-supabase/cache";
+import { Cache, createSimpleState } from "./react-supabase/cache";
+import { useUser } from "./react-supabase/context";
 import { db } from "./react-supabase/db";
 import { useDb } from "./react-supabase/useDb";
-
-const dbAtom = db<unknown, undefined>((supabase) => {
-  return supabase.from("users").select("*").get();
-});
-
-const depDbAtom = db<unknown, undefined>((supabase) => (get, hash) => {
-  const result = get(dbAtom);
-
-  if (result.state === "SUCCESS") {
-    return supabase.from("users").select("*").get();
+import { supabase } from "./supabase";
+const dbAtom = db<unknown, undefined>(
+  (supabase) => {
+    return supabase.from("todos").select("*").get();
+  },
+  {
+    resetCacheOnAuthChange: () => true,
   }
+);
 
-  if (result.state === "LOADING") {
-    return {
-      ...result,
-      hash,
-      state: "STALE",
-    };
-  }
-  return {
-    ...result,
-    hash,
-  };
-});
+const depDbAtom = db<unknown, undefined>(
+  (supabase) => (get, hash) => {
+    const result = get(dbAtom);
 
-const depAtom2 = db<unknown, undefined>((supabase) => (get, hash) => {
-  const result = get(depDbAtom);
+    if (result.state !== "SUCCESS") {
+      return createSimpleState(hash, "STALE");
+    }
 
-  if (result.state === "SUCCESS") {
-    return supabase.from("users").select("*").get();
+    return supabase.from("todos").select("*").get();
+  },
+  {
+    resetCacheOnAuthChange: () => true,
   }
-  if (result.state === "LOADING") {
-    return {
-      ...result,
-      hash,
-      state: "STALE",
-    };
-  }
-  return {
-    ...result,
-    hash,
-  };
-});
+);
 export const App = () => {
   // const { state, data } = useDb(userData, "users");
   const state = "SUCCESS";
@@ -61,21 +42,41 @@ export const App = () => {
     console.log(Cache.cache);
   };
 
+  const onClickAction = async (
+    e: React.MouseEvent<HTMLButtonElement>,
+    action: "signIn" | "signOut"
+  ) => {
+    e.preventDefault();
+
+    const result = await supabase.auth[action]({
+      email: import.meta.env.VITE_ACCOUNT_EMAIL as string,
+      password: import.meta.env.VITE_ACCOUNT_PASSWORD as string,
+    });
+
+    console.log(result);
+  };
+
   return (
     <div>
       <p>Start of Supabase management</p>
       {state === "SUCCESS" ? <small>Success</small> : null}
       <button onClick={onClick}>Shown children </button>
       <button onClick={logOnClick}>Log Cache object</button>
+      <button onClick={(e) => onClickAction(e, "signIn")}>SignIn</button>
+      <button onClick={(e) => onClickAction(e, "signOut")}>SignOut</button>
+
       {showChildren ? <Component /> : null}
     </div>
   );
 };
 
 const Component = () => {
-  const result = useDb(depAtom2);
+  const result = useDb(depDbAtom);
+  const user = useUser();
+
+  const resultStr = JSON.stringify(result, null, 8);
 
   console.log(result);
-
-  return <div>Children !</div>;
+  console.log(user);
+  return <div>{resultStr}</div>;
 };
