@@ -6,7 +6,7 @@ import {
   SupabaseProvider,
 } from "@src/react-supabase/context";
 import { WrapperComponent } from "@nivekithan/react-hooks";
-import React from "react";
+import React, { createContext } from "react";
 
 export const KEY = "1234567890-test-key";
 export const url = {
@@ -28,22 +28,44 @@ export const Wrapper: WrapperComponent<ClientProviderProps & DbOptionsProviderPr
   );
 };
 
-export const successClient = createClient({
+export let successClient = createClient({
   url: url.success,
   key: KEY,
 });
 
-export const errorClient = createClient({
+export let errorClient = createClient({
   url: url.error,
   key: KEY,
 });
 
-export const errorToSuccessClient = createClient({
+export let errorToSuccessClient = createClient({
   url: url.errorToSuccess,
   key: KEY,
 });
 
-export const dynamicSuccessClient = createClient({
+export let dynamicSuccessClient = createClient({
   url: url.dynamicSuccess,
   key: KEY,
 });
+
+export const resetClients = () => {
+  successClient = createClient({
+    url: url.success,
+    key: KEY,
+  });
+
+  errorClient = createClient({
+    url: url.error,
+    key: KEY,
+  });
+
+  errorToSuccessClient = createClient({
+    url: url.errorToSuccess,
+    key: KEY,
+  });
+
+  dynamicSuccessClient = createClient({
+    url: url.dynamicSuccess,
+    key: KEY,
+  });
+};

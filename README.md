@@ -17,7 +17,8 @@ As of now I am aim to provide these features
 - [x] Finer control over state-updates with `shouldComponentUpdate`
 - [x] Dependent Requests
 - [x] Prefetch Requests
-- [ ] Authentication
+- [x] Authentication
+- [ ] Mutation
 
 **Note: The list is not comprehensive list of all features**
 

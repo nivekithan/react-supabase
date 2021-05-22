@@ -12,7 +12,7 @@ export abstract class PostgrestBuilder<T> {
   protected method!: "GET" | "HEAD" | "POST" | "PATCH" | "DELETE";
   protected url!: URL;
   protected headers!: Headers;
-  protected schema = "public";
+  protected schema?: string;
 
   constructor(builder: PostgrestBuilder<T>) {
     Object.assign(this, builder);

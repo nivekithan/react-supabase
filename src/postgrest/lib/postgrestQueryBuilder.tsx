@@ -1,10 +1,14 @@
 import { PostgrestBuilder, Headers } from "./types";
 import { PostgrestFilterBuilder } from "./postgrestFilterBuilder";
 
-export  class PostgrestQueryBuilder<T> extends PostgrestBuilder<T> {
-  constructor(url: string, headers: Headers = {}) {
+export class PostgrestQueryBuilder<T> extends PostgrestBuilder<T> {
+  constructor(
+    url: string,
+    { headers = {}, schema }: { headers?: { [key: string]: string }; schema?: string } = {}
+  ) {
     super({} as PostgrestBuilder<T>);
     this.url = new URL(url);
+    this.schema = schema;
     this.headers = { ...headers };
   }
 

@@ -6,7 +6,7 @@ import { db } from "@src/react-supabase/db";
 import { DbResult, useDb } from "@src/react-supabase/useDb";
 import { Renderer, renderHook, Result } from "@nivekithan/react-hooks";
 import React from "react";
-import { Wrapper, successResult, errorResult, errorClient, successClient, url } from "./utils";
+import { Wrapper, successResult, errorResult, errorClient, successClient } from "./utils";
 import { Cache, createSimpleState } from "@src/react-supabase/cache";
 import { SupabaseBuild } from "@src/postgrest/lib/types";
 
@@ -133,6 +133,7 @@ describe("Testing basic functionality of Cache class", () => {
       retry: 0,
       shouldComponentUpdate: () => false,
       stopRefetchTimeout: 2000 * 60,
+      resetCacheOnAuthChange: true,
     };
     const _ = new Cache(successClient, () => supabase, hash, options, {});
 

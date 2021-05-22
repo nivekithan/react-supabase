@@ -1,4 +1,4 @@
-import { PostgrestClient } from "../postgrest";
+import { SupabaseClient } from "@src/supbase-js/supabaseClient";
 import { SupabaseBuild } from "../postgrest/lib/types";
 import { dbOptions } from "./context";
 import { Getter } from "./getter";
@@ -6,13 +6,13 @@ import { Key } from "./key";
 import { DbResult } from "./useDb";
 
 export type NonDepCreateUrl<props> = props extends undefined
-  ? (supabase: PostgrestClient) => SupabaseBuild
-  : (supabase: PostgrestClient, para: props) => SupabaseBuild;
+  ? (supabase: SupabaseClient) => SupabaseBuild
+  : (supabase: SupabaseClient, para: props) => SupabaseBuild;
 
 export type DepCreateUrl<data, props> = props extends undefined
-  ? (supabase: PostgrestClient) => (get: Getter, hash: string) => SupabaseBuild | DbResult<data>
+  ? (supabase: SupabaseClient) => (get: Getter, hash: string) => SupabaseBuild | DbResult<data>
   : (
-      supabase: PostgrestClient,
+      supabase: SupabaseClient,
       props: props
     ) => (get: Getter, hash: string) => SupabaseBuild | DbResult<data>;
 

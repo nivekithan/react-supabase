@@ -1,6 +1,8 @@
-import React, { useContext } from "react";
-import { PostgrestClient } from "../postgrest";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { SupabaseClient } from "../supbase-js/supabaseClient";
 import { DbResult } from "./useDb";
+import { User } from "../supbase-js/supabaseClient";
+import { AuthChangeEvent, Session } from "@supabase/gotrue-js";
 
 export type SupabaseConfig = {
   url: string;
@@ -8,10 +10,7 @@ export type SupabaseConfig = {
 };
 
 export const createClient = ({ url, key }: SupabaseConfig) => {
-  return new PostgrestClient(`${url}/rest/v1`, {
-    apiKey: key,
-    Authorization: `Bearer ${key}`,
-  });
+  return new SupabaseClient(url, key);
 };
 
 export type dbOptions<data> = {
@@ -21,13 +20,15 @@ export type dbOptions<data> = {
   retry?: number;
   stopRefetchTimeout?: number;
   clearCacheTimeout?: number;
+  resetCacheOnAuthChange?: boolean | ((e: AuthChangeEvent, session: Session | null) => boolean);
 };
 
-const supabase = React.createContext<PostgrestClient | undefined>(undefined);
-const dbOptionsContext = React.createContext<dbOptions<unknown> | undefined>(undefined);
+const supabase = createContext<SupabaseClient | undefined>(undefined);
+const dbOptionsContext = createContext<dbOptions<unknown> | undefined>(undefined);
+export const SupabaseUserContext = createContext<User | null | undefined>(undefined);
 
 export type ClientProviderProps = {
-  client: PostgrestClient;
+  client: SupabaseClient;
   children: React.ReactNode;
 };
 
@@ -44,16 +45,6 @@ export const DbOptionsProvider = ({ options = {}, children }: DbOptionsProviderP
   return <dbOptionsContext.Provider value={options}>{children}</dbOptionsContext.Provider>;
 };
 
-export const useSupabase = () => {
-  const supabaseClient = useContext(supabase);
-
-  if (!supabaseClient) {
-    throw new Error("use useSupabase inside the ClientProvider tree");
-  } else {
-    return supabaseClient;
-  }
-};
-
 export const useDbOptions = () => {
   const supabaseOptions = useContext(dbOptionsContext);
 
@@ -66,14 +57,75 @@ export const useDbOptions = () => {
 
 type SupabaseProviderProps = {
   children: React.ReactNode;
-  client: PostgrestClient;
+  client: SupabaseClient;
   dbOptions?: dbOptions<unknown>;
 };
 
 export const SupabaseProvider = ({ children, client, dbOptions }: SupabaseProviderProps) => {
   return (
     <ClientProvider client={client}>
-      <DbOptionsProvider options={dbOptions}>{children}</DbOptionsProvider>
+      <DbOptionsProvider options={dbOptions}>
+        <SupabaseUserProvider>{children}</SupabaseUserProvider>
+      </DbOptionsProvider>
     </ClientProvider>
   );
+};
+
+export const useSupabase = () => {
+  const supabaseClient = useContext(supabase);
+
+  if (!supabaseClient) {
+    throw new Error("use useSupabase inside the ClientProvider tree");
+  } else {
+    return supabaseClient;
+  }
+};
+
+type SupabaseUserProviderProps = {
+  children: React.ReactNode;
+};
+
+const SupabaseUserProvider = ({ children }: SupabaseUserProviderProps) => {
+  const supabase = useSupabase();
+  const [user, setUser] = useState<User | null>(supabase.auth.user());
+  useEffect(() => {
+    const unSubs = supabase.auth.onAuthStateChange((e, session) => {
+      switch (e) {
+        case "SIGNED_IN":
+        case "USER_UPDATED":
+          setUser(session?.user ?? null);
+          break;
+        case "SIGNED_OUT":
+        case "USER_DELETED":
+          setUser(null);
+          break;
+      }
+    });
+
+    return () => {
+      unSubs.data?.unsubscribe();
+    };
+  }, [supabase.auth]);
+
+  return <SupabaseUserContext.Provider value={user}>{children}</SupabaseUserContext.Provider>;
+};
+
+export const useUser = () => {
+  const user = useContext(SupabaseUserContext);
+
+  if (user === undefined) {
+    throw new Error("use useUser inside SupabaseProvider tree");
+  }
+
+  return user;
+};
+
+export const useAuthUser = () => {
+  const user = useUser();
+
+  if (user === null) {
+    throw new Error("The user is not authenticated");
+  }
+
+  return user;
 };
