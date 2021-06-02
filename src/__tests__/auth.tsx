@@ -8,7 +8,6 @@ import { useUser, useAuthUser } from "@src/react-supabase/context";
 import { db } from "@src/react-supabase/db";
 import { DbResult, useDb } from "@src/react-supabase/useDb";
 import { User } from "@src/supbase-js/supabaseClient";
-import { time } from "node:console";
 import React from "react";
 import { errorClient, successClient, Wrapper } from "./utils";
 import { ServerData } from "./utils/server";

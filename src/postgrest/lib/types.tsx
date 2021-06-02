@@ -11,8 +11,9 @@ export type SupabaseBuild = {
 export abstract class PostgrestBuilder<T> {
   protected method!: "GET" | "HEAD" | "POST" | "PATCH" | "DELETE";
   protected url!: URL;
-  protected headers!: Headers;
+  protected headers!: { [key: string]: string };
   protected schema?: string;
+  protected body?: Partial<T> | Partial<T>[];
 
   constructor(builder: PostgrestBuilder<T>) {
     Object.assign(this, builder);
