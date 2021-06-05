@@ -12,7 +12,7 @@ import { successClient } from "./utils";
 describe("Using hooks outside the SupabaseProvider tree or its equivalent tree should throw error", () => {
   test("Checking useSupabase", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").get();
+      return supabase.from("users");
     });
     const { result } = renderHook(() => {
       return useDb(dbAtom);
@@ -23,7 +23,7 @@ describe("Using hooks outside the SupabaseProvider tree or its equivalent tree s
 
   test("Checking useDbOption", () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").get();
+      return supabase.from("users");
     });
 
     const { result } = renderHook(

@@ -1,5 +1,5 @@
-import { SupabaseClient } from "@src/supbase-js/supabaseClient";
-import { SupabaseBuild } from "../postgrest/lib/types";
+import { SupabaseClient } from "@src/supabase-js/SupabaseClient";
+import { SupabaseBuild } from "./types";
 import { dbOptions } from "./context";
 import { Getter } from "./getter";
 import { Key } from "./key";

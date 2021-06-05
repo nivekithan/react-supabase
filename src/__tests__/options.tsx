@@ -13,7 +13,7 @@ describe("Supabase options", () => {
     jest.useFakeTimers();
 
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor, waitForNextUpdate, unmount, rerender } = renderHook(
@@ -78,7 +78,7 @@ describe("Supabase options", () => {
   test("Error: Behavior of default supabaseOptions", async () => {
     jest.useFakeTimers();
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor, waitForNextUpdate, unmount, rerender } = renderHook(
@@ -140,7 +140,7 @@ describe("Supabase options", () => {
 
   test("Success: Options provided in Context should overwrite the default Config", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor, waitForNextUpdate } = renderHook(() => useDb(dbAtom, undefined), {
@@ -172,7 +172,7 @@ describe("Supabase options", () => {
   });
   test("Error: Options provided in Context should overwrite the default Config", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor, waitForNextUpdate } = renderHook(() => useDb(dbAtom, undefined), {
@@ -207,7 +207,7 @@ describe("Supabase options", () => {
   test("Success : Option provided in db should overwrite default and context options", async () => {
     const dbAtom = db<unknown, undefined>(
       (supabase) => {
-        return supabase.from("users").select("name").get();
+        return supabase.from("users").select("name");
       },
       { cacheTime: 100 }
     );
@@ -244,7 +244,7 @@ describe("Supabase options", () => {
   test("Error: Options provided in db should overwrite the default Config and context", async () => {
     const dbAtom = db<unknown, undefined>(
       (supabase) => {
-        return supabase.from("users").select("name").get();
+        return supabase.from("users").select("name");
       },
       { cacheTime: 100 }
     );

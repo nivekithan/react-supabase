@@ -7,8 +7,7 @@ import { createSimpleState } from "@src/react-supabase/cache";
 import { useUser, useAuthUser } from "@src/react-supabase/context";
 import { db } from "@src/react-supabase/db";
 import { DbResult, useDb } from "@src/react-supabase/useDb";
-import { User } from "@src/supbase-js/supabaseClient";
-import { time } from "node:console";
+import { User } from "@src/supabase-js";
 import React from "react";
 import { errorClient, successClient, Wrapper } from "./utils";
 import { ServerData } from "./utils/server";
@@ -171,7 +170,7 @@ describe("Testing authorization", () => {
 
   test("Non dep req: Changing the auth should reset the cache ", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("*").get();
+      return supabase.from("users").select("*");
     });
 
     await successClient.auth.signIn({
@@ -212,7 +211,7 @@ describe("Testing authorization", () => {
 
   test("dep req: Changing the auth should reset the cache ", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("*").get();
+      return supabase.from("users").select("*");
     });
 
     const depAtom = db<unknown, undefined>((supabase) => (get, hash) => {
@@ -222,7 +221,7 @@ describe("Testing authorization", () => {
         return createSimpleState(hash, "STALE");
       }
 
-      return supabase.from("users").select("*").get();
+      return supabase.from("users").select("*");
     });
 
     await successClient.auth.signIn({
@@ -263,7 +262,7 @@ describe("Testing authorization", () => {
   test("non dep req: Setting resetCacheOnAuthChange to false, Should not reset the cache", async () => {
     const dbAtom = db<unknown, undefined>(
       (supabase) => {
-        return supabase.from("users").select("*").get();
+        return supabase.from("users").select("*");
       },
       {
         resetCacheOnAuthChange: false,
@@ -303,7 +302,7 @@ describe("Testing authorization", () => {
   test("non dep req: Setting resetCacheOnAuthChange to a function which resolves to false, Should not reset the cache", async () => {
     const dbAtom = db<unknown, undefined>(
       (supabase) => {
-        return supabase.from("users").select("*").get();
+        return supabase.from("users").select("*");
       },
       {
         resetCacheOnAuthChange: () => false,
@@ -343,7 +342,7 @@ describe("Testing authorization", () => {
   test("non dep req: Setting resetCacheOnAuthChange to a function which resolves to true, Should  reset the cache", async () => {
     const dbAtom = db<unknown, undefined>(
       (supabase) => {
-        return supabase.from("users").select("*").get();
+        return supabase.from("users").select("*");
       },
       {
         resetCacheOnAuthChange: () => true,
@@ -387,7 +386,7 @@ describe("Testing authorization", () => {
   test("dep req: Setting resetCacheOnAuthChange to false, Should not reset the cache", async () => {
     const dbAtom = db<unknown, undefined>(
       (supabase) => {
-        return supabase.from("users").select("*").get();
+        return supabase.from("users").select("*");
       },
       {
         resetCacheOnAuthChange: false,
@@ -402,7 +401,7 @@ describe("Testing authorization", () => {
           return createSimpleState(hash, "STALE");
         }
 
-        return supabase.from("users").select("*").get();
+        return supabase.from("users").select("*");
       },
       {
         resetCacheOnAuthChange: false,
@@ -442,7 +441,7 @@ describe("Testing authorization", () => {
   test("dep req: Setting resetCacheOnAuthChange to a function which resolves to false, Should not reset the cache", async () => {
     const dbAtom = db<unknown, undefined>(
       (supabase) => {
-        return supabase.from("users").select("*").get();
+        return supabase.from("users").select("*");
       },
       {
         resetCacheOnAuthChange: () => false,
@@ -457,7 +456,7 @@ describe("Testing authorization", () => {
           return createSimpleState(hash, "STALE");
         }
 
-        return supabase.from("users").select("*").get();
+        return supabase.from("users").select("*");
       },
       {
         resetCacheOnAuthChange: () => false,
@@ -497,7 +496,7 @@ describe("Testing authorization", () => {
   test("dep req: Setting resetCacheOnAuthChange to a function which resolves to true, Should  reset the cache", async () => {
     const dbAtom = db<unknown, undefined>(
       (supabase) => {
-        return supabase.from("users").select("*").get();
+        return supabase.from("users").select("*");
       },
       {
         resetCacheOnAuthChange: () => true,
@@ -512,7 +511,7 @@ describe("Testing authorization", () => {
           return createSimpleState(hash, "STALE");
         }
 
-        return supabase.from("users").select("*").get();
+        return supabase.from("users").select("*");
       },
       {
         resetCacheOnAuthChange: () => true,

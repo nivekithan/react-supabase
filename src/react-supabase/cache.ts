@@ -1,10 +1,10 @@
-import { SupabaseBuild } from "../postgrest/lib/types";
+import { SupabaseBuild } from "./types";
 import { DbResult } from "./useDb";
-import { fetch } from "cross-fetch";
 import { dbOptions } from "./context";
 import { createGetter, Getter, getterHash } from "./getter";
-import { SupabaseClient } from "@src/supbase-js/supabaseClient";
+import { SupabaseClient } from "@src/supabase-js/SupabaseClient";
 import { Subscription } from "@supabase/gotrue-js";
+import { PostgrestBuilder } from "@supabase/postgrest-js";
 
 type AuthSubsObj = {
   data: Subscription | null;
@@ -68,8 +68,12 @@ type CacheHash<data> = {
    */
 
   subsObj?: AuthSubsObj;
-} & Required<dbOptions<unknown>> &
-  (SupabaseBuild | Record<keyof SupabaseBuild, undefined>);
+
+  /*
+   * SupabaseBuild
+   */
+  supabaseBuild: SupabaseBuild | undefined;
+} & Required<dbOptions<unknown>>;
 
 type SetCacheOptions = {
   backgroundFetch?: boolean;
@@ -191,7 +195,7 @@ export class Cache<data> {
       "STATIC",
       hash,
       result,
-      { headers: undefined, url: undefined, method: undefined },
+      undefined,
       options as Required<dbOptions<unknown>>,
       reCalculateSupabaseBuild
     );
@@ -224,9 +228,7 @@ export class Cache<data> {
         delete getterHash[hash];
 
         if (typeof couldBeSupabaseBuild !== "function") {
-          Cache.cache[hash].url = couldBeSupabaseBuild.url;
-          Cache.cache[hash].method = couldBeSupabaseBuild.method;
-          Cache.cache[hash].headers = couldBeSupabaseBuild.headers;
+          Cache.cache[hash].supabaseBuild = couldBeSupabaseBuild;
           Cache.cache[hash].__type = "SERVER";
 
           if (fetch) {
@@ -237,10 +239,8 @@ export class Cache<data> {
           const get = createGetter(supabase, hash, configOptions);
           const couldBeSupabaseBuild2 = couldBeSupabaseBuild(get, hash);
 
-          if ((couldBeSupabaseBuild2 as SupabaseBuild).method) {
-            Cache.cache[hash].url = (couldBeSupabaseBuild2 as SupabaseBuild).url;
-            Cache.cache[hash].method = (couldBeSupabaseBuild2 as SupabaseBuild).method;
-            Cache.cache[hash].headers = (couldBeSupabaseBuild2 as SupabaseBuild).headers;
+          if (couldBeSupabaseBuild2 instanceof PostgrestBuilder) {
+            Cache.cache[hash].supabaseBuild = couldBeSupabaseBuild2;
             Cache.cache[hash].__type = "SERVER";
 
             if (fetch) {
@@ -249,9 +249,7 @@ export class Cache<data> {
             }
             return;
           } else {
-            Cache.cache[hash].url = undefined;
-            Cache.cache[hash].method = undefined;
-            Cache.cache[hash].headers = undefined;
+            Cache.cache[hash].supabaseBuild = undefined;
             Cache.cache[hash].__type = "STATIC";
             Cache.setCache(hash, couldBeSupabaseBuild2 as DbResult<unknown>);
             Cache.cache[hash].stopRefetch();
@@ -332,19 +330,15 @@ export class Cache<data> {
         const get = createGetter(supabase, hash, configOptions);
         const couldBeSupabaseBuild2 = couldBeSupabaseBuild(get, hash);
 
-        if ((couldBeSupabaseBuild2 as SupabaseBuild).method) {
-          Cache.cache[hash].url = (couldBeSupabaseBuild2 as SupabaseBuild).url;
-          Cache.cache[hash].method = (couldBeSupabaseBuild2 as SupabaseBuild).method;
-          Cache.cache[hash].headers = (couldBeSupabaseBuild2 as SupabaseBuild).headers;
+        if (couldBeSupabaseBuild2 instanceof PostgrestBuilder) {
+          Cache.cache[hash].supabaseBuild = couldBeSupabaseBuild2;
           Cache.cache[hash].__type = "SERVER";
 
           Cache.cache[hash].fetch();
           Cache.cache[hash].refetch();
           return;
         } else {
-          Cache.cache[hash].url = undefined;
-          Cache.cache[hash].method = undefined;
-          Cache.cache[hash].headers = undefined;
+          Cache.cache[hash].supabaseBuild = undefined;
           Cache.cache[hash].__type = "STATIC";
           Cache.setCache(hash, couldBeSupabaseBuild2 as DbResult<unknown>);
           Cache.cache[hash].stopRefetch();
@@ -431,13 +425,11 @@ export const fetchData = async (hash: string, options: FetchDataOptions = {}) =>
     const { backgroundFetch } = options;
     const retry = Cache.getOptions(hash, "retry");
 
-    const url = Cache.cache[hash].url;
-    const headers = Cache.cache[hash].headers;
-    const method = Cache.cache[hash].method;
+    const supabaseBuild = Cache.cache[hash].supabaseBuild;
 
-    if (!(url && headers && method)) {
+    if (!supabaseBuild) {
       throw new Error(
-        "Any one of the url, headers, method is undefined: " + url + headers + method
+        `The cache with hash ${hash} cannot do api calls. Make sure that the Cache.cache[hash].supabaseBuild is not undefined`
       );
     }
 
@@ -448,18 +440,15 @@ export const fetchData = async (hash: string, options: FetchDataOptions = {}) =>
     let dbResult: DbResult<unknown> = createSimpleState(hash, "STALE");
 
     do {
-      const result = await fetch(url.toString(), {
-        headers: headers,
-        method: method,
-      });
+      const postgrestResponse = await supabaseBuild;
 
-      if (result.ok) {
+      if (postgrestResponse.data) {
         dbResult = {
           state: "SUCCESS",
-          data: JSON.parse(await result.text()),
+          data: postgrestResponse.data,
           error: undefined,
-          status: result.status,
-          statusText: result.statusText,
+          status: postgrestResponse.status,
+          statusText: postgrestResponse.statusText,
           hash,
         };
         break;
@@ -467,9 +456,9 @@ export const fetchData = async (hash: string, options: FetchDataOptions = {}) =>
         dbResult = {
           state: "ERROR",
           data: undefined,
-          error: await result.json(),
-          status: result.status,
-          statusText: result.statusText,
+          error: postgrestResponse.error,
+          status: postgrestResponse.status,
+          statusText: postgrestResponse.statusText,
           hash,
         };
 
@@ -505,7 +494,7 @@ const createCacheHash = (
   type: "SERVER" | "STATIC",
   hash: string,
   result: DbResult<unknown>,
-  supabaseBuild: SupabaseBuild | Record<keyof SupabaseBuild, undefined>,
+  supabaseBuild: SupabaseBuild | undefined,
   options: Required<dbOptions<unknown>>,
   reCalculateSupabaseBuild: () => void,
   authSubsObj?: AuthSubsObj
@@ -527,7 +516,7 @@ const createCacheHash = (
     ...options,
 
     // Supabase build
-    ...supabaseBuild,
+    supabaseBuild,
 
     reCalculateSupabaseBuild,
 
@@ -536,11 +525,9 @@ const createCacheHash = (
         Cache.cache[hash].fetchCanceled = false;
       }
 
-      const url = this.url;
-      const method = this.method;
-      const headers = this.headers;
+      const supabaseBuild = Cache.cache[hash].supabaseBuild;
 
-      if (url && method && headers) {
+      if (supabaseBuild) {
         if (typeof backgroundFetch === "undefined") {
           backgroundFetch = Cache.getOptions(hash, "backgroundFetch");
         }
@@ -593,11 +580,9 @@ const createCacheHash = (
         Cache.cache[hash].fetch();
       }
 
-      const url = this.url;
-      const method = this.method;
-      const headers = this.headers;
+      const supabaseBuild = Cache.cache[hash].supabaseBuild;
 
-      if (url && method && headers) {
+      if (supabaseBuild) {
         const timeToken = fetchDataWithInterval(hash, { interval });
 
         Cache.cache[hash].refetchingTimeToken = timeToken;

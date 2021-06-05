@@ -12,7 +12,7 @@ import { successClient, Wrapper } from "./utils";
 describe("Testing usePreFetch", () => {
   test("PreFetching db", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("*").get();
+      return supabase.from("users").select("*");
     });
 
     renderHook(() => usePreFetch(dbAtom), {

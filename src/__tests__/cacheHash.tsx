@@ -12,7 +12,7 @@ import { DbResult, useDb } from "@src/react-supabase/useDb";
 describe("Feature: Cache Hash", () => {
   test("If props contains non JSON-serializable value, then hash should throw error", async () => {
     const dbAtom = db<unknown, () => void>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
     const { result } = renderHook(
       () =>
@@ -38,7 +38,7 @@ describe("Feature: Cache Hash", () => {
 
   test("Success: If hash is same no additional requests should be made to server", async () => {
     const dbAtom = db<unknown, { name: { first: string; second: string } }>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor } = renderHook(
@@ -70,7 +70,7 @@ describe("Feature: Cache Hash", () => {
 
   test("Error: If hash is same no additional requests should be made to server", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor } = renderHook(
@@ -105,7 +105,7 @@ describe("Feature: Cache Hash", () => {
 
   test("Success: If db is same but hash is different there should be additional request which then should be cached", async () => {
     const dbAtom = db<unknown, { name: string }>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor } = renderHook(
@@ -136,7 +136,7 @@ describe("Feature: Cache Hash", () => {
   });
   test("Error: If db is same but hash is different then there should be additional request which then should be cached", async () => {
     const dbAtom = db<unknown, { name: string }>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor } = renderHook(
@@ -168,10 +168,10 @@ describe("Feature: Cache Hash", () => {
 
   test("Success: Different db should not access each other cache", async () => {
     const dbAtom1 = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
     const dbAtom2 = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor } = renderHook(
@@ -206,10 +206,10 @@ describe("Feature: Cache Hash", () => {
 
   test("Error: Different db should not access each other cache", async () => {
     const dbAtom1 = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
     const dbAtom2 = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor } = renderHook(
@@ -256,7 +256,7 @@ describe("Feature: Override default Hash function", () => {
     });
 
     const dbAtom = db<unknown, { key: number; someFun: () => string }>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result } = renderHook(
@@ -294,7 +294,7 @@ describe("Feature: Override default Hash function", () => {
     });
 
     const dbAtom = db<unknown, { key: number; someFun: () => string }>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result } = renderHook(

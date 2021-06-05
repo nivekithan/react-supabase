@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { SupabaseClient } from "../supbase-js/supabaseClient";
+import { SupabaseClient } from "../supabase-js/SupabaseClient";
 import { DbResult } from "./useDb";
-import { User } from "../supbase-js/supabaseClient";
+import { User } from "../supabase-js";
 import { AuthChangeEvent, Session } from "@supabase/gotrue-js";
 
 export type SupabaseConfig = {

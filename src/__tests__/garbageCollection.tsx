@@ -11,25 +11,22 @@ import { Wrapper, ServerData, errorClient, successClient } from "./utils";
 describe("Feature: Garbage collection", () => {
   test("Success: The refetching request based on cache time should stopped if there are no subscribers for stopRefetchTimeout", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
-    const { result, waitFor, unmount, rerender } = renderHook(
-      () => useDb(dbAtom, undefined),
-      {
-        // eslint-disable-next-line react/prop-types, react/display-name
-        wrapper: ({ children }) => {
-          return (
-            <Wrapper
-              client={successClient}
-              options={{ cacheTime: 200, retry: 0, stopRefetchTimeout: 100 }}
-            >
-              {children}
-            </Wrapper>
-          );
-        },
-      }
-    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    const { result, waitFor, unmount, rerender } = renderHook(() => useDb(dbAtom, undefined), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return (
+          <Wrapper
+            client={successClient}
+            options={{ cacheTime: 200, retry: 0, stopRefetchTimeout: 100 }}
+          >
+            {children}
+          </Wrapper>
+        );
+      },
+    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -49,25 +46,22 @@ describe("Feature: Garbage collection", () => {
 
   test("Error: The refetching request based on cache time should stopped if there are no subscribers for stopRefetchTimeout", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
-    const { result, waitFor, unmount, rerender } = renderHook(
-      () => useDb(dbAtom, undefined),
-      {
-        // eslint-disable-next-line react/prop-types, react/display-name
-        wrapper: ({ children }) => {
-          return (
-            <Wrapper
-              client={errorClient}
-              options={{ cacheTime: 200, retry: 0, stopRefetchTimeout: 100 }}
-            >
-              {children}
-            </Wrapper>
-          );
-        },
-      }
-    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    const { result, waitFor, unmount, rerender } = renderHook(() => useDb(dbAtom, undefined), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return (
+          <Wrapper
+            client={errorClient}
+            options={{ cacheTime: 200, retry: 0, stopRefetchTimeout: 100 }}
+          >
+            {children}
+          </Wrapper>
+        );
+      },
+    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "ERROR";
@@ -87,25 +81,19 @@ describe("Feature: Garbage collection", () => {
 
   test("Success: The cache should be cleared based on clearCacheTimeout if there are no subscribers", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
-    const { result, waitFor, unmount, rerender } = renderHook(
-      () => useDb(dbAtom, undefined),
-      {
-        // eslint-disable-next-line react/prop-types, react/display-name
-        wrapper: ({ children }) => {
-          return (
-            <Wrapper
-              client={successClient}
-              options={{ retry: 0, clearCacheTimeout: 200 }}
-            >
-              {children}
-            </Wrapper>
-          );
-        },
-      }
-    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    const { result, waitFor, unmount, rerender } = renderHook(() => useDb(dbAtom, undefined), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return (
+          <Wrapper client={successClient} options={{ retry: 0, clearCacheTimeout: 200 }}>
+            {children}
+          </Wrapper>
+        );
+      },
+    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -131,25 +119,19 @@ describe("Feature: Garbage collection", () => {
 
   test("Error: The cache should be cleared based on clearCacheTimeout if there are no subscribers", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
-    const { result, waitFor, unmount, rerender } = renderHook(
-      () => useDb(dbAtom, undefined),
-      {
-        // eslint-disable-next-line react/prop-types, react/display-name
-        wrapper: ({ children }) => {
-          return (
-            <Wrapper
-              client={errorClient}
-              options={{ retry: 0, clearCacheTimeout: 200 }}
-            >
-              {children}
-            </Wrapper>
-          );
-        },
-      }
-    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    const { result, waitFor, unmount, rerender } = renderHook(() => useDb(dbAtom, undefined), {
+      // eslint-disable-next-line react/prop-types, react/display-name
+      wrapper: ({ children }) => {
+        return (
+          <Wrapper client={errorClient} options={{ retry: 0, clearCacheTimeout: 200 }}>
+            {children}
+          </Wrapper>
+        );
+      },
+    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
 
     await waitFor(() => {
       return result.current.state === "ERROR";

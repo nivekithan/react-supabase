@@ -6,19 +6,14 @@ import { db } from "@src/react-supabase/db";
 import { DbResult, useDb } from "@src/react-supabase/useDb";
 import { Renderer, renderHook, Result } from "@nivekithan/react-hooks";
 import React from "react";
-import {
-  Wrapper,
-  ServerData,
-  setSuccessOnTime,
-  errorToSuccessClient,
-} from "./utils";
+import { Wrapper, ServerData, setSuccessOnTime, errorToSuccessClient } from "./utils";
 
 describe("Feature: Refetching error request", () => {
   test("ErrorToSuccess : The first response is success ", async () => {
     setSuccessOnTime(1);
 
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor } = renderHook(() => useDb(dbAtom, undefined), {
@@ -39,7 +34,7 @@ describe("Feature: Refetching error request", () => {
     setSuccessOnTime(4);
 
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor } = renderHook(() => useDb(dbAtom, undefined), {
@@ -60,7 +55,7 @@ describe("Feature: Refetching error request", () => {
     setSuccessOnTime(3);
 
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor } = renderHook(() => useDb(dbAtom, undefined), {
@@ -79,7 +74,7 @@ describe("Feature: Refetching error request", () => {
 
   test("ErrorToSuccess: Never a success response", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor } = renderHook(() => useDb(dbAtom, undefined), {
