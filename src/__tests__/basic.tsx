@@ -8,12 +8,12 @@ import { Renderer, renderHook, Result } from "@nivekithan/react-hooks";
 import React from "react";
 import { Wrapper, successResult, errorResult, errorClient, successClient } from "./utils";
 import { Cache, createSimpleState } from "@src/react-supabase/cache";
-import { SupabaseBuild } from "@src/postgrest/lib/types";
+import { SupabaseBuild } from "@src/react-supabase/types";
 
 describe("Flow of requests", () => {
   test("Success: Request is success", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitForNextUpdate } = renderHook(() => useDb(dbAtom, undefined), {
@@ -50,7 +50,7 @@ describe("Flow of requests", () => {
 
   test("Error: Request is not success", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitForNextUpdate } = renderHook(() => useDb(dbAtom, undefined), {
@@ -120,11 +120,11 @@ describe("Testing basic functionality of Cache class", () => {
 
   test("Creating new cache with a hash, for which there is already an cache should throw error", () => {
     const hash = "123455";
-    const supabase: SupabaseBuild = {
-      url: new URL("https://google.com"),
-      headers: { content: "JSON" },
-      method: "GET",
-    };
+    const supabase = {
+      then: () => {
+        // Do Nothing
+      },
+    } as SupabaseBuild;
 
     const options = {
       backgroundFetch: true,
@@ -135,7 +135,7 @@ describe("Testing basic functionality of Cache class", () => {
       stopRefetchTimeout: 2000 * 60,
       resetCacheOnAuthChange: true,
     };
-    const _ = new Cache(successClient, () => supabase, hash, options, {});
+    new Cache(successClient, () => supabase, hash, options, {});
 
     expect(() => new Cache(successClient, () => supabase, hash, options, {})).toThrowError(
       Error(

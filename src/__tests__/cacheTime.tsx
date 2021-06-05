@@ -11,7 +11,7 @@ import { Wrapper, ServerData, errorClient, successClient } from "./utils";
 describe("Feature: Refetch based on Cache time", () => {
   test("Success: Should refetch the requests based on cache time ", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor, waitForNextUpdate } = renderHook(
@@ -22,10 +22,7 @@ describe("Feature: Refetch based on Cache time", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              client={successClient}
-              options={{ cacheTime: 100, retry: 0 }}
-            >
+            <Wrapper client={successClient} options={{ cacheTime: 100, retry: 0 }}>
               {children}
             </Wrapper>
           );
@@ -46,7 +43,7 @@ describe("Feature: Refetch based on Cache time", () => {
 
   test("Error: Should refetch the requests based on cache time", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor, waitForNextUpdate } = renderHook(
@@ -57,10 +54,7 @@ describe("Feature: Refetch based on Cache time", () => {
         // eslint-disable-next-line react/prop-types, react/display-name
         wrapper: ({ children }) => {
           return (
-            <Wrapper
-              client={errorClient}
-              options={{ cacheTime: 100, retry: 0 }}
-            >
+            <Wrapper client={errorClient} options={{ cacheTime: 100, retry: 0 }}>
               {children}
             </Wrapper>
           );

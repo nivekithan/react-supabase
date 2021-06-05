@@ -11,7 +11,7 @@ import { Wrapper, errorClient, successClient } from "./utils";
 describe("Feature: Background fetching", () => {
   test("Success: Refetching request should happen in background", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor, waitForNextUpdate } = renderHook(() => useDb(dbAtom, undefined), {
@@ -39,7 +39,7 @@ describe("Feature: Background fetching", () => {
 
   test("Error: Refetching request should happen in background", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor, waitForNextUpdate } = renderHook(() => useDb(dbAtom, undefined), {
@@ -67,7 +67,7 @@ describe("Feature: Background fetching", () => {
 
   test("Success: If background refetching is disabled then state change should be reflected", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor, waitForNextUpdate } = renderHook(() => useDb(dbAtom, undefined), {
@@ -101,7 +101,7 @@ describe("Feature: Background fetching", () => {
 
   test("Error: If background refetching is disabled then state change should be reflected", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("name").get();
+      return supabase.from("users").select("name");
     });
 
     const { result, waitFor, waitForNextUpdate } = renderHook(() => useDb(dbAtom, undefined), {

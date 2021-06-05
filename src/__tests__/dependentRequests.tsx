@@ -21,7 +21,7 @@ describe("Dependent Requests", () => {
     type serverResult = [{ id: string; name: string }];
 
     const dbAtom = db<serverResult, string>((supabase, name) => {
-      return supabase.from("users").select("*").eq("userName", name).get();
+      return supabase.from("users").select("*").eq("userName", name);
     });
 
     const depAtom = db<serverResult, string>((supabase, name) => (get, hash) => {
@@ -37,7 +37,7 @@ describe("Dependent Requests", () => {
 
         const depName = data[0].name;
 
-        return supabase.from("users").select("*").eq("userName", depName).get();
+        return supabase.from("users").select("*").eq("userName", depName);
       }
     });
     const name = "Nivekithan S";
@@ -77,7 +77,7 @@ describe("Dependent Requests", () => {
     type serverResult = [{ id: string; name: string }];
 
     const dbAtom = db<serverResult, string>((supabase, name) => {
-      return supabase.from("users").select("*").eq("userName", name).get();
+      return supabase.from("users").select("*").eq("userName", name);
     });
 
     const depAtom = db<serverResult, string>((supabase, name) => (get, hash) => {
@@ -93,7 +93,7 @@ describe("Dependent Requests", () => {
 
         const depName = data[0].name;
 
-        return supabase.from("users").select("*").eq("userName", depName).get();
+        return supabase.from("users").select("*").eq("userName", depName);
       }
     });
     const name = "Nivekithan S";
@@ -133,14 +133,14 @@ describe("Dependent Requests", () => {
 
   test("Dependent on Dependent Db", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("*").get();
+      return supabase.from("users").select("*");
     });
 
     const depDbAtom = db<unknown, undefined>((supabase) => (get, hash) => {
       const result = get(dbAtom);
 
       if (result.state === "SUCCESS") {
-        return supabase.from("users").select("*").get();
+        return supabase.from("users").select("*");
       }
 
       if (result.state === "LOADING") {
@@ -160,7 +160,7 @@ describe("Dependent Requests", () => {
       const result = get(depDbAtom);
 
       if (result.state === "SUCCESS") {
-        return supabase.from("users").select("*").get();
+        return supabase.from("users").select("*");
       }
       if (result.state === "LOADING") {
         return {
@@ -194,7 +194,7 @@ describe("Dependent Requests", () => {
   test("On recalculating dependent atom it returns state", async () => {
     const dbAtom = db<unknown, undefined>(
       (supabase) => {
-        return supabase.from("users").select("*").get();
+        return supabase.from("users").select("*");
       },
       { cacheTime: 200, retry: 0 }
     );
@@ -204,7 +204,7 @@ describe("Dependent Requests", () => {
         const result = get(dbAtom);
         // console.warn(result)
         if (result.state === "ERROR") {
-          return supabase.from("users").select("*").get();
+          return supabase.from("users").select("*");
         }
 
         if (result.state === "LOADING") {
@@ -244,15 +244,15 @@ describe("Dependent Requests", () => {
   });
 
   test("Dependent State is in desired state", async () => {
-    const dbAtom = db<unknown, undefined>((suapbase) => {
-      return suapbase.from("users").select("*").get();
+    const dbAtom = db<unknown, undefined>((supabase) => {
+      return supabase.from("users").select("*");
     });
 
     const depAtom = db<unknown, undefined>((supabase) => (get, hash) => {
       const result = get(dbAtom);
 
       if (result.state === "SUCCESS") {
-        return supabase.from("users").select("*").get();
+        return supabase.from("users").select("*");
       }
 
       return {
@@ -284,12 +284,12 @@ describe("Dependent Requests", () => {
   });
 
   test("dependent request always return supabaseBuild", async () => {
-    const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("*").get();
+    db<unknown, undefined>((supabase) => {
+      return supabase.from("users").select("*");
     });
 
     const depDbAtom = db<unknown, undefined>((supabase) => () => {
-      return supabase.from("users").select("*").get();
+      return supabase.from("users").select("*");
     });
 
     const { result, waitFor } = renderHook(() => useDb(depDbAtom), {

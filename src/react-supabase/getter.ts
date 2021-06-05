@@ -1,4 +1,4 @@
-import { SupabaseClient } from "@src/supbase-js/supabaseClient";
+import { SupabaseClient } from "@src/supabase-js/SupabaseClient";
 import { Cache } from "./cache";
 import { dbOptions } from "./context";
 import { DbContext } from "./db";

@@ -11,7 +11,7 @@ import { errorClient, Wrapper } from "./utils";
 describe("Testing Getter", () => {
   test("Testing shouldRecalculate options", async () => {
     const dbAtom = db<unknown, undefined>((supabase) => {
-      return supabase.from("users").select("*").get();
+      return supabase.from("users").select("*");
     });
 
     const depDbAtom = db<unknown, undefined>((supabase) => (get, hash) => {
@@ -20,7 +20,7 @@ describe("Testing Getter", () => {
       });
 
       if (result.state === "SUCCESS") {
-        return supabase.from("users").select("*").get();
+        return supabase.from("users").select("*");
       } else {
         return {
           ...result,

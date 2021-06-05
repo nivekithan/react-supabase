@@ -12,7 +12,7 @@ describe("Feature: ShouldComponentUpdate", () => {
   test("Success: testing ShouldComponentUpdate", async () => {
     const dbAtom = db<unknown, undefined>(
       (supabase) => {
-        return supabase.from("users").select("name").get();
+        return supabase.from("users").select("name");
       },
       {
         shouldComponentUpdate: (curr, next) => {
@@ -41,7 +41,7 @@ describe("Feature: ShouldComponentUpdate", () => {
   test("Error: testing ShouldComponentUpdate", async () => {
     const dbAtom = db<unknown, undefined>(
       (supabase) => {
-        return supabase.from("users").select("name").get();
+        return supabase.from("users").select("name");
       },
       {
         shouldComponentUpdate: (curr, next) => {
