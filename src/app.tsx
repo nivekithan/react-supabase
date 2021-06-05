@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Cache, createSimpleState } from "./react-supabase/cache";
+import { DbCache, createSimpleState } from "./react-supabase/dbCache";
 import { useUser } from "./react-supabase/context";
 import { db } from "./react-supabase/db";
 import { useDb } from "./react-supabase/useDb";
@@ -39,7 +39,7 @@ export const App = () => {
 
   const logOnClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    console.log(Cache.cache);
+    console.log(DbCache.cache);
   };
 
   const onClickAction = async (

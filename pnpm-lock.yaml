@@ -4,6 +4,7 @@ specifiers:
   '@nivekithan/react-hooks': ^2.0.0
   '@supabase/gotrue-js': ^1.15.1
   '@supabase/postgrest-js': ^0.29.0
+  '@testing-library/react': ^11.2.7
   '@types/jest': ^26.0.22
   '@types/node': ^14.14.41
   '@types/react': ^17.0.0
@@ -34,6 +35,7 @@ dependencies:
 
 devDependencies:
   '@nivekithan/react-hooks': 2.0.0_react-dom@17.0.2+react@17.0.2
+  '@testing-library/react': 11.2.7_react-dom@17.0.2+react@17.0.2
   '@types/jest': 26.0.23
   '@types/node': 14.17.0
   '@types/react': 17.0.6
@@ -345,6 +347,13 @@ packages:
     dependencies:
       '@babel/core': 7.14.3
       '@babel/helper-plugin-utils': 7.13.0
+    dev: true
+
+  /@babel/runtime-corejs3/7.14.0:
+    resolution: {integrity: sha512-0R0HTZWHLk6G8jIk0FtoX+AatCtKnswS98VhXwGImFc759PJRp4Tru0PQYZofyijTFUr+gT8Mu7sgXVJLQ0ceg==}
+    dependencies:
+      core-js-pure: 3.14.0
+      regenerator-runtime: 0.13.7
     dev: true
 
   /@babel/runtime/7.14.0:
@@ -704,6 +713,37 @@ packages:
     dependencies:
       cross-fetch: 3.1.4
     dev: false
+
+  /@testing-library/dom/7.31.2:
+    resolution: {integrity: sha512-3UqjCpey6HiTZT92vODYLPxTBWlM8ZOOjr3LX5F37/VRipW2M1kX6I/Cm4VXzteZqfGfagg8yXywpcOgQBlNsQ==}
+    engines: {node: '>=10'}
+    dependencies:
+      '@babel/code-frame': 7.12.13
+      '@babel/runtime': 7.14.0
+      '@types/aria-query': 4.2.1
+      aria-query: 4.2.2
+      chalk: 4.1.1
+      dom-accessibility-api: 0.5.6
+      lz-string: 1.4.4
+      pretty-format: 26.6.2
+    dev: true
+
+  /@testing-library/react/11.2.7_react-dom@17.0.2+react@17.0.2:
+    resolution: {integrity: sha512-tzRNp7pzd5QmbtXNG/mhdcl7Awfu/Iz1RaVHY75zTdOkmHCuzMhRL83gWHSgOAcjS3CCbyfwUHMZgRJb4kAfpA==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      react: '*'
+      react-dom: '*'
+    dependencies:
+      '@babel/runtime': 7.14.0
+      '@testing-library/dom': 7.31.2
+      react: 17.0.2
+      react-dom: 17.0.2_react@17.0.2
+    dev: true
+
+  /@types/aria-query/4.2.1:
+    resolution: {integrity: sha512-S6oPal772qJZHoRZLFc/XoZW2gFvwXusYUmXPXkgxJLuEk2vOt7jc4Yo6z/vtI0EBkbPBVrJJ0B+prLIKiWqHg==}
+    dev: true
 
   /@types/babel__core/7.1.14:
     resolution: {integrity: sha512-zGZJzzBUVDo/eV6KgbE0f0ZI7dInEYvo12Rb70uNQDshC3SkRMb67ja0GgRHZgAX3Za6rhaWlvbDO8rrGyAb1g==}
@@ -1082,6 +1122,14 @@ packages:
     resolution: {integrity: sha512-o5Roy6tNG4SL/FOkCAN6RzjiakZS25RLYFrcMttJqbdd8BWrnA+fGz57iN5Pb06pvBGvl5gQ0B48dJlslXvoTg==}
     dependencies:
       sprintf-js: 1.0.3
+    dev: true
+
+  /aria-query/4.2.2:
+    resolution: {integrity: sha512-o/HelwhuKpTj/frsOsbNLNgnNGVIFsVP/SW2BSF14gVl7kAfMOJ6/8wUAUvG1R1NHKrfG+2sHZTu0yauT1qBrA==}
+    engines: {node: '>=6.0'}
+    dependencies:
+      '@babel/runtime': 7.14.0
+      '@babel/runtime-corejs3': 7.14.0
     dev: true
 
   /arr-diff/4.0.0:
@@ -1567,6 +1615,11 @@ packages:
     engines: {node: '>=0.10.0'}
     dev: true
 
+  /core-js-pure/3.14.0:
+    resolution: {integrity: sha512-YVh+LN2FgNU0odThzm61BsdkwrbrchumFq3oztnE9vTKC4KS2fvnPmcx8t6jnqAyOTCTF4ZSiuK8Qhh7SNcL4g==}
+    requiresBuild: true
+    dev: true
+
   /core-util-is/1.0.2:
     resolution: {integrity: sha1-tf1UIgqivFq1eqtxQMlAdUUDwac=}
     dev: true
@@ -1751,6 +1804,10 @@ packages:
     engines: {node: '>=6.0.0'}
     dependencies:
       esutils: 2.0.3
+    dev: true
+
+  /dom-accessibility-api/0.5.6:
+    resolution: {integrity: sha512-DplGLZd8L1lN64jlT27N9TVSESFR5STaEJvX+thCby7fuCHonfPpAlodYc3vuUYbDuDec5w8AMP7oCM5TWFsqw==}
     dev: true
 
   /domexception/2.0.1:
@@ -3607,6 +3664,11 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       yallist: 4.0.0
+    dev: true
+
+  /lz-string/1.4.4:
+    resolution: {integrity: sha1-wNjq82BZ9wV5bh40SBHPTEmNOiY=}
+    hasBin: true
     dev: true
 
   /make-dir/3.1.0:

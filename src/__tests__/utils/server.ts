@@ -1,7 +1,7 @@
 import { PostgrestError } from "@src/react-supabase/useDb";
 import { rest } from "msw";
 import { setupServer } from "msw/node";
-import { url } from "./utils";
+import { successClient, url } from "./utils";
 
 export const authUser = {
   access_token: "12345",
@@ -62,8 +62,18 @@ const restHandlers = [
     return res(ctx.text(JSON.stringify(successResult)), ctx.status(200, "The request is success"));
   }),
 
+  rest.post(new RegExp(`${url.success}/rest/v1`), (req, res, ctx) => {
+    ServerData.add("SUCCESS");
+    return res(ctx.text(JSON.stringify(successResult)), ctx.status(200, "The request is success"));
+  }),
+
   rest.get(new RegExp(`${url.error}/rest/v1`), (req, res, ctx) => {
     ServerData.add("ERROR");
+    return res(ctx.json(errorResult), ctx.status(500, "The request is not success"));
+  }),
+
+  rest.post(new RegExp(`${url.error}/rest/v1`), (req, res, ctx) => {
+    ServerData.add("SUCCESS");
     return res(ctx.json(errorResult), ctx.status(500, "The request is not success"));
   }),
 

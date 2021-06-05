@@ -1,4 +1,5 @@
 import type { DbContext } from "./db";
+import { MutateContext } from "./mutate";
 
 const stableStringifyReplacer = (_key: string, value: any): unknown => {
   if (typeof value === "function") {
@@ -59,7 +60,10 @@ export const setHashFunction = (
   };
 };
 
-export const getHash = <data, props>(db: DbContext<data, props>, value: props) => {
+export const getHash = <Data, HookProps, SetProps = unknown>(
+  db: DbContext<Data, HookProps> | MutateContext<Data, HookProps, SetProps>,
+  value: HookProps
+) => {
   const hashString = hash.isHashFunProvided
     ? hash.providedHashFun(value)
     : hash.defaultHashFun(value);

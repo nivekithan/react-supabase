@@ -11,7 +11,7 @@ type AuthSubsObj = {
   error: Error | null;
 };
 
-type CacheHash<data> = {
+type DbCacheHash<data> = {
   // Type of Cache
   __type: "STATIC" | "SERVER";
 
@@ -80,14 +80,14 @@ type SetCacheOptions = {
   force?: boolean;
 };
 
-export class Cache<data> {
+export class DbCache<data> {
   static cache: {
-    [hash: string]: CacheHash<unknown>;
+    [hash: string]: DbCacheHash<unknown>;
   } = {};
 
   static getCache<T>(hash: string): DbResult<T> {
-    if (Cache.cache[hash]) {
-      return Cache.cache[hash].result as DbResult<T>;
+    if (DbCache.cache[hash]) {
+      return DbCache.cache[hash].result as DbResult<T>;
     } else {
       throw new Error(
         `Cache.getCache: There is no cache with hash ${hash} use new Cache() to create new Cache`
@@ -96,18 +96,18 @@ export class Cache<data> {
   }
 
   static setCache<T>(hash: string, value: DbResult<T>, options: SetCacheOptions = {}) {
-    if (!Cache.cache[hash]) {
+    if (!DbCache.cache[hash]) {
       throw new Error(
         `Cache.setCache: There is no cache with hash ${hash} use new Cache() to create new Cache`
       );
     } else {
       const { backgroundFetch = false, force = false } = options;
 
-      Cache.cache[hash].result = value;
-      Cache.cache[hash].__sync++;
+      DbCache.cache[hash].result = value;
+      DbCache.cache[hash].__sync++;
 
       if (!backgroundFetch || ["SUCCESS", "ERROR"].includes(value.state)) {
-        Object.values(Cache.cache[hash].subscribers).forEach((doOnChange) => {
+        Object.values(DbCache.cache[hash].subscribers).forEach((doOnChange) => {
           doOnChange(value, force);
         });
       }
@@ -122,16 +122,16 @@ export class Cache<data> {
       unique: string;
     }
   ) {
-    if (Cache.cache[hash]) {
-      Cache.cache[hash].stopClearCache();
-      Cache.cache[hash].stopStopRefetch();
+    if (DbCache.cache[hash]) {
+      DbCache.cache[hash].stopClearCache();
+      DbCache.cache[hash].stopStopRefetch();
 
-      Cache.cache[hash].subscribers[options.unique] = callOnChange as (
+      DbCache.cache[hash].subscribers[options.unique] = callOnChange as (
         cache: DbResult<unknown>,
         force: boolean
       ) => void;
-      Cache.cache[hash].refetch();
-      afterSubscribed(Cache.cache[hash].__sync, Cache.getCache(hash));
+      DbCache.cache[hash].refetch();
+      afterSubscribed(DbCache.cache[hash].__sync, DbCache.getCache(hash));
     } else {
       throw new Error(
         `Cache.subscribe: There is no cache with hash ${hash} use new Cache() to create new cache`
@@ -148,12 +148,12 @@ export class Cache<data> {
        *
        * Thats why we will check if cache with hash exists
        */
-      if (Cache.cache[hash]) {
-        delete Cache.cache[hash].subscribers[options.unique];
+      if (DbCache.cache[hash]) {
+        delete DbCache.cache[hash].subscribers[options.unique];
 
-        if (Object.values(Cache.cache[hash].subscribers).length === 0) {
-          Cache.cache[hash].stopRefetchWithDelay(false, true);
-          Cache.cache[hash].clearCacheWithDelay();
+        if (Object.values(DbCache.cache[hash].subscribers).length === 0) {
+          DbCache.cache[hash].stopRefetchWithDelay(false, true);
+          DbCache.cache[hash].clearCacheWithDelay();
         }
       }
     };
@@ -165,12 +165,12 @@ export class Cache<data> {
     options: Required<dbOptions<data>>,
     reCalculateSupabaseBuild: () => void
   ) {
-    if (Cache.cache[hash]) {
+    if (DbCache.cache[hash]) {
       throw new Error(
         `Cache.fromSupabaseBuild: There is already a cache with hash ${hash} use Cache.clearCache to remove the cache before creating a new one`
       );
     }
-    Cache.cache[hash] = createCacheHash(
+    DbCache.cache[hash] = createCacheHash(
       "SERVER",
       hash,
       createSimpleState(hash, "STALE"),
@@ -186,12 +186,12 @@ export class Cache<data> {
     result: DbResult<data>,
     reCalculateSupabaseBuild: () => void
   ) {
-    if (Cache.cache[hash]) {
+    if (DbCache.cache[hash]) {
       throw new Error(
         `Cache.fromStatic: There is already a cache with hash ${hash} use Cache.clearCache to remove the cache before creating a new one`
       );
     }
-    Cache.cache[hash] = createCacheHash(
+    DbCache.cache[hash] = createCacheHash(
       "STATIC",
       hash,
       result,
@@ -211,7 +211,7 @@ export class Cache<data> {
     options: Required<dbOptions<data>>,
     configOptions: dbOptions<unknown>
   ) {
-    if (Cache.cache[hash]) {
+    if (DbCache.cache[hash]) {
       throw new Error(
         `new Cache: There is already a cache with hash ${hash} use Cache.clearCache to remove it before creating a new one`
       );
@@ -228,121 +228,126 @@ export class Cache<data> {
         delete getterHash[hash];
 
         if (typeof couldBeSupabaseBuild !== "function") {
-          Cache.cache[hash].supabaseBuild = couldBeSupabaseBuild;
-          Cache.cache[hash].__type = "SERVER";
+          DbCache.cache[hash].supabaseBuild = couldBeSupabaseBuild;
+          DbCache.cache[hash].__type = "SERVER";
 
           if (fetch) {
-            !Cache.cache[hash].fetchCanceled && Cache.cache[hash].fetch();
-            !Cache.cache[hash].fetchCanceled && Cache.cache[hash].refetch();
+            !DbCache.cache[hash].fetchCanceled && DbCache.cache[hash].fetch();
+            !DbCache.cache[hash].fetchCanceled && DbCache.cache[hash].refetch();
           }
         } else {
           const get = createGetter(supabase, hash, configOptions);
           const couldBeSupabaseBuild2 = couldBeSupabaseBuild(get, hash);
 
           if (couldBeSupabaseBuild2 instanceof PostgrestBuilder) {
-            Cache.cache[hash].supabaseBuild = couldBeSupabaseBuild2;
-            Cache.cache[hash].__type = "SERVER";
+            DbCache.cache[hash].supabaseBuild = couldBeSupabaseBuild2;
+            DbCache.cache[hash].__type = "SERVER";
 
             if (fetch) {
-              !Cache.cache[hash].fetchCanceled && Cache.cache[hash].fetch();
-              !Cache.cache[hash].fetchCanceled && Cache.cache[hash].refetch();
+              !DbCache.cache[hash].fetchCanceled && DbCache.cache[hash].fetch();
+              !DbCache.cache[hash].fetchCanceled && DbCache.cache[hash].refetch();
             }
             return;
           } else {
-            Cache.cache[hash].supabaseBuild = undefined;
-            Cache.cache[hash].__type = "STATIC";
-            Cache.setCache(hash, couldBeSupabaseBuild2 as DbResult<unknown>);
-            Cache.cache[hash].stopRefetch();
-            Cache.cache[hash].stopStopRefetch();
+            DbCache.cache[hash].supabaseBuild = undefined;
+            DbCache.cache[hash].__type = "STATIC";
+            DbCache.setCache(hash, couldBeSupabaseBuild2 as DbResult<unknown>);
+            DbCache.cache[hash].stopRefetch();
+            DbCache.cache[hash].stopStopRefetch();
             return;
           }
         }
       };
 
       if (typeof couldBeSupabaseBuild !== "function") {
-        Cache.fromSupabaseBuild(hash, couldBeSupabaseBuild, options, reCalculateSupabaseBuild);
+        DbCache.fromSupabaseBuild(hash, couldBeSupabaseBuild, options, reCalculateSupabaseBuild);
 
         const subsObj = supabase.auth.onAuthStateChange((e, session) => {
           switch (typeof options.resetCacheOnAuthChange) {
             case "boolean":
               if (options.resetCacheOnAuthChange) {
-                Cache.setCache(hash, createSimpleState(hash, "STALE"), {
+                DbCache.setCache(hash, createSimpleState(hash, "STALE"), {
                   backgroundFetch: false,
                   force: true,
                 });
-                Cache.cache[hash].reCalculateSupabaseBuild();
+                DbCache.cache[hash].reCalculateSupabaseBuild();
                 return;
               } else {
-                Cache.cache[hash].reCalculateSupabaseBuild(false);
+                DbCache.cache[hash].reCalculateSupabaseBuild(false);
                 return;
               }
             case "function":
               if (options.resetCacheOnAuthChange(e, session)) {
-                Cache.setCache(hash, createSimpleState(hash, "STALE"), {
+                DbCache.setCache(hash, createSimpleState(hash, "STALE"), {
                   backgroundFetch: false,
                   force: true,
                 });
-                Cache.cache[hash].reCalculateSupabaseBuild();
+                DbCache.cache[hash].reCalculateSupabaseBuild();
                 return;
               } else {
-                Cache.cache[hash].reCalculateSupabaseBuild(false);
+                DbCache.cache[hash].reCalculateSupabaseBuild(false);
                 return;
               }
           }
         });
-        Cache.cache[hash].subsObj = subsObj;
+        DbCache.cache[hash].subsObj = subsObj;
 
         return;
       } else {
         // We will be creating a temporally cache state
-        Cache.fromStatic(hash, options, createSimpleState(hash, "STALE"), reCalculateSupabaseBuild);
+        DbCache.fromStatic(
+          hash,
+          options,
+          createSimpleState(hash, "STALE"),
+          reCalculateSupabaseBuild
+        );
 
         const subsObj = supabase.auth.onAuthStateChange((e, session) => {
           switch (typeof options.resetCacheOnAuthChange) {
             case "boolean":
               if (options.resetCacheOnAuthChange) {
-                Cache.setCache(hash, createSimpleState(hash, "STALE"), {
+                DbCache.setCache(hash, createSimpleState(hash, "STALE"), {
                   backgroundFetch: false,
                   force: true,
                 });
-                Cache.cache[hash].reCalculateSupabaseBuild();
+                DbCache.cache[hash].reCalculateSupabaseBuild();
                 return;
               } else {
-                Cache.cache[hash].reCalculateSupabaseBuild(false);
+                DbCache.cache[hash].reCalculateSupabaseBuild(false);
                 return;
               }
             case "function":
               if (options.resetCacheOnAuthChange(e, session)) {
-                Cache.setCache(hash, createSimpleState(hash, "STALE"), {
+                DbCache.setCache(hash, createSimpleState(hash, "STALE"), {
                   backgroundFetch: false,
                   force: true,
                 });
-                Cache.cache[hash].reCalculateSupabaseBuild();
+                DbCache.cache[hash].reCalculateSupabaseBuild();
                 return;
               } else {
-                Cache.cache[hash].reCalculateSupabaseBuild(false);
+                DbCache.cache[hash].reCalculateSupabaseBuild(false);
                 return;
               }
           }
         });
-        Cache.cache[hash].subsObj = subsObj;
+        DbCache.cache[hash].subsObj = subsObj;
 
         const get = createGetter(supabase, hash, configOptions);
         const couldBeSupabaseBuild2 = couldBeSupabaseBuild(get, hash);
 
         if (couldBeSupabaseBuild2 instanceof PostgrestBuilder) {
-          Cache.cache[hash].supabaseBuild = couldBeSupabaseBuild2;
-          Cache.cache[hash].__type = "SERVER";
+          DbCache.cache[hash].supabaseBuild = couldBeSupabaseBuild2;
+          DbCache.cache[hash].__type = "SERVER";
 
-          Cache.cache[hash].fetch();
-          Cache.cache[hash].refetch();
+          DbCache.cache[hash].fetch();
+          DbCache.cache[hash].refetch();
           return;
         } else {
-          Cache.cache[hash].supabaseBuild = undefined;
-          Cache.cache[hash].__type = "STATIC";
-          Cache.setCache(hash, couldBeSupabaseBuild2 as DbResult<unknown>);
-          Cache.cache[hash].stopRefetch();
-          Cache.cache[hash].stopStopRefetch();
+          DbCache.cache[hash].supabaseBuild = undefined;
+          DbCache.cache[hash].__type = "STATIC";
+          DbCache.setCache(hash, couldBeSupabaseBuild2 as DbResult<unknown>);
+          DbCache.cache[hash].stopRefetch();
+          DbCache.cache[hash].stopStopRefetch();
           return;
         }
       }
@@ -350,16 +355,16 @@ export class Cache<data> {
   }
 
   static reset() {
-    Object.values(Cache.cache).forEach((cache) => {
+    Object.values(DbCache.cache).forEach((cache) => {
       cache.clearCache();
     });
 
-    Cache.cache = {};
+    DbCache.cache = {};
   }
 
   static getOptions<key extends keyof Required<dbOptions<unknown>>>(hash: string, key: key) {
-    if (Cache.cache[hash]) {
-      return Cache.cache[hash][key];
+    if (DbCache.cache[hash]) {
+      return DbCache.cache[hash][key];
     } else {
       throw new Error(
         `Cache.getOptions: There is no cache with hash ${hash} use new Cache() to create new cache`
@@ -368,18 +373,18 @@ export class Cache<data> {
   }
 
   static setOptions(hash: string, options: dbOptions<unknown>) {
-    if (Cache.cache[hash]) {
+    if (DbCache.cache[hash]) {
       if (typeof options.cacheTime !== "undefined") {
-        Cache.cache[hash].stopRefetch();
+        DbCache.cache[hash].stopRefetch();
       }
 
-      Cache.cache[hash] = {
-        ...Cache.cache[hash],
+      DbCache.cache[hash] = {
+        ...DbCache.cache[hash],
         ...options,
       };
 
       if (typeof options.cacheTime !== "undefined") {
-        !Cache.cache[hash].fetchCanceled && Cache.cache[hash].refetch();
+        !DbCache.cache[hash].fetchCanceled && DbCache.cache[hash].refetch();
       }
     } else {
       throw new Error(
@@ -396,13 +401,13 @@ type FetchDataIntervalOptions = {
 const fetchDataWithInterval = (hash: string, options: FetchDataIntervalOptions) => {
   const { interval } = options;
   const cache = () => {
-    return Cache.getCache<unknown>(hash);
+    return DbCache.getCache<unknown>(hash);
   };
 
   const timeToken = setInterval(() => {
     try {
-      const backgroundFetch = Cache.getOptions(hash, "backgroundFetch");
-      Cache.setCache(hash, createSimpleState(hash, "STALE"), {
+      const backgroundFetch = DbCache.getOptions(hash, "backgroundFetch");
+      DbCache.setCache(hash, createSimpleState(hash, "STALE"), {
         backgroundFetch,
       });
       if (cache().state === "STALE") {
@@ -423,9 +428,9 @@ type FetchDataOptions = {
 export const fetchData = async (hash: string, options: FetchDataOptions = {}) => {
   try {
     const { backgroundFetch } = options;
-    const retry = Cache.getOptions(hash, "retry");
+    const retry = DbCache.getOptions(hash, "retry");
 
-    const supabaseBuild = Cache.cache[hash].supabaseBuild;
+    const supabaseBuild = DbCache.cache[hash].supabaseBuild;
 
     if (!supabaseBuild) {
       throw new Error(
@@ -433,7 +438,7 @@ export const fetchData = async (hash: string, options: FetchDataOptions = {}) =>
       );
     }
 
-    Cache.setCache(hash, createSimpleState(hash, "LOADING"), {
+    DbCache.setCache(hash, createSimpleState(hash, "LOADING"), {
       backgroundFetch,
     });
     let i = 0;
@@ -468,7 +473,7 @@ export const fetchData = async (hash: string, options: FetchDataOptions = {}) =>
       }
     } while (i < retry + 1);
 
-    Cache.setCache(hash, dbResult, {
+    DbCache.setCache(hash, dbResult, {
       backgroundFetch,
     });
   } catch (err) {
@@ -498,7 +503,7 @@ const createCacheHash = (
   options: Required<dbOptions<unknown>>,
   reCalculateSupabaseBuild: () => void,
   authSubsObj?: AuthSubsObj
-): CacheHash<unknown> => {
+): DbCacheHash<unknown> => {
   return {
     // TYPE
     __type: type,
@@ -521,15 +526,15 @@ const createCacheHash = (
     reCalculateSupabaseBuild,
 
     fetch(backgroundFetch?: boolean) {
-      if (Cache.cache[hash].fetchCanceled) {
-        Cache.cache[hash].fetchCanceled = false;
+      if (DbCache.cache[hash].fetchCanceled) {
+        DbCache.cache[hash].fetchCanceled = false;
       }
 
-      const supabaseBuild = Cache.cache[hash].supabaseBuild;
+      const supabaseBuild = DbCache.cache[hash].supabaseBuild;
 
       if (supabaseBuild) {
         if (typeof backgroundFetch === "undefined") {
-          backgroundFetch = Cache.getOptions(hash, "backgroundFetch");
+          backgroundFetch = DbCache.getOptions(hash, "backgroundFetch");
         }
         fetchData(hash, { backgroundFetch });
       }
@@ -541,20 +546,20 @@ const createCacheHash = (
        */
 
       if (setCanceled) {
-        Cache.cache[hash].fetchCanceled = true;
+        DbCache.cache[hash].fetchCanceled = true;
       }
 
-      const timeToken = Cache.cache[hash].refetchingTimeToken;
+      const timeToken = DbCache.cache[hash].refetchingTimeToken;
 
       if (timeToken) {
         clearInterval(timeToken);
-        Cache.cache[hash].refetchingTimeToken = undefined;
+        DbCache.cache[hash].refetchingTimeToken = undefined;
       }
     },
 
     refetch(force?: boolean, immediate?: boolean) {
-      if (Cache.cache[hash].fetchCanceled) {
-        Cache.cache[hash].fetchCanceled = false;
+      if (DbCache.cache[hash].fetchCanceled) {
+        DbCache.cache[hash].fetchCanceled = false;
         immediate = true;
       }
 
@@ -566,31 +571,31 @@ const createCacheHash = (
        *
        */
 
-      if (Cache.cache[hash].refetchingTimeToken) {
+      if (DbCache.cache[hash].refetchingTimeToken) {
         if (!force) {
           return;
         }
 
-        Cache.cache[hash].stopRefetch();
+        DbCache.cache[hash].stopRefetch();
       }
 
-      const interval = Cache.getOptions(hash, "cacheTime");
+      const interval = DbCache.getOptions(hash, "cacheTime");
 
       if (immediate) {
-        Cache.cache[hash].fetch();
+        DbCache.cache[hash].fetch();
       }
 
-      const supabaseBuild = Cache.cache[hash].supabaseBuild;
+      const supabaseBuild = DbCache.cache[hash].supabaseBuild;
 
       if (supabaseBuild) {
         const timeToken = fetchDataWithInterval(hash, { interval });
 
-        Cache.cache[hash].refetchingTimeToken = timeToken;
+        DbCache.cache[hash].refetchingTimeToken = timeToken;
       }
     },
 
     stopRefetchWithDelay(force?: boolean, setCanceled?: boolean) {
-      const stopRefetchingToken = Cache.cache[hash].stopRefetchingToken;
+      const stopRefetchingToken = DbCache.cache[hash].stopRefetchingToken;
 
       if (stopRefetchingToken) {
         // The startStopRefetching process is already in progress
@@ -599,37 +604,37 @@ const createCacheHash = (
           return;
         }
 
-        Cache.cache[hash].stopStopRefetch();
+        DbCache.cache[hash].stopStopRefetch();
       }
 
       const timeToken = setTimeout(() => {
-        Cache.cache[hash]?.stopRefetch(setCanceled);
-      }, Cache.getOptions(hash, "stopRefetchTimeout"));
+        DbCache.cache[hash]?.stopRefetch(setCanceled);
+      }, DbCache.getOptions(hash, "stopRefetchTimeout"));
 
-      Cache.cache[hash].stopRefetchingToken = timeToken;
+      DbCache.cache[hash].stopRefetchingToken = timeToken;
     },
 
     stopStopRefetch() {
-      const stopRefetchingToken = Cache.cache[hash].stopRefetchingToken;
+      const stopRefetchingToken = DbCache.cache[hash].stopRefetchingToken;
 
       if (stopRefetchingToken) {
         clearTimeout(stopRefetchingToken);
-        Cache.cache[hash].stopRefetchingToken = undefined;
+        DbCache.cache[hash].stopRefetchingToken = undefined;
       } else {
         return;
       }
     },
 
     clearCache() {
-      Cache.cache[hash].stopRefetch();
-      Cache.cache[hash].stopStopRefetch();
-      Cache.cache[hash].subsObj?.data?.unsubscribe();
+      DbCache.cache[hash].stopRefetch();
+      DbCache.cache[hash].stopStopRefetch();
+      DbCache.cache[hash].subsObj?.data?.unsubscribe();
 
-      const clearCacheToken = Cache.cache[hash].clearCacheToken;
+      const clearCacheToken = DbCache.cache[hash].clearCacheToken;
 
       if (clearCacheToken) {
         clearTimeout(clearCacheToken);
-        Cache.cache[hash].clearCacheToken = undefined;
+        DbCache.cache[hash].clearCacheToken = undefined;
       }
 
       Object.values(getterHash[hash] || {}).map((unSubs) => {
@@ -637,11 +642,11 @@ const createCacheHash = (
       });
       delete getterHash[hash];
 
-      delete Cache.cache[hash];
+      delete DbCache.cache[hash];
     },
 
     clearCacheWithDelay(force?: boolean) {
-      const clearCacheToken = Cache.cache[hash].clearCacheToken;
+      const clearCacheToken = DbCache.cache[hash].clearCacheToken;
 
       if (clearCacheToken) {
         // The process already started
@@ -650,19 +655,19 @@ const createCacheHash = (
           return;
         }
 
-        Cache.cache[hash].stopClearCache();
+        DbCache.cache[hash].stopClearCache();
       }
 
-      const clearCacheTimeout = Cache.getOptions(hash, "clearCacheTimeout");
+      const clearCacheTimeout = DbCache.getOptions(hash, "clearCacheTimeout");
       const timeToken = setTimeout(() => {
-        Cache.cache[hash]?.clearCache();
+        DbCache.cache[hash]?.clearCache();
       }, clearCacheTimeout);
 
-      Cache.cache[hash].clearCacheToken = timeToken;
+      DbCache.cache[hash].clearCacheToken = timeToken;
     },
 
     stopClearCache() {
-      const clearCacheToken = Cache.cache[hash].clearCacheToken;
+      const clearCacheToken = DbCache.cache[hash].clearCacheToken;
 
       if (!clearCacheToken) {
         // There is no process to stop
@@ -670,7 +675,7 @@ const createCacheHash = (
       }
 
       clearTimeout(clearCacheToken);
-      Cache.cache[hash].clearCacheToken = undefined;
+      DbCache.cache[hash].clearCacheToken = undefined;
     },
 
     ...authSubsObj,

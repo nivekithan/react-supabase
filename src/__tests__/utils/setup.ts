@@ -1,4 +1,4 @@
-import { Cache } from "@src/react-supabase/cache";
+import { DbCache } from "@src/react-supabase/dbCache";
 import { Key } from "@src/react-supabase/key";
 import { server, ServerData } from "./server";
 import { resetClients } from "./utils";
@@ -6,7 +6,7 @@ import { resetClients } from "./utils";
 beforeAll(() => server.listen());
 
 afterEach(() => {
-  Cache.reset();
+  DbCache.reset();
   Key.reset();
   ServerData.reset();
   server.resetHandlers();

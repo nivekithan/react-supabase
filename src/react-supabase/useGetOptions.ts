@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from "react";
-import { Cache } from "./cache";
+import { DbCache } from "./dbCache";
 import { dbOptions, useDbOptions } from "./context";
 
 export const defaultDbOptions: Required<dbOptions<unknown>> = {
@@ -27,7 +27,7 @@ export const useGetDbOptions = <data>(hash: string, dbOptions: dbOptions<data>) 
   }, [dbOptions, supabaseOptions]);
 
   useEffect(() => {
-    Cache.setOptions(hash, options as dbOptions<unknown>);
+    DbCache.setOptions(hash, options as dbOptions<unknown>);
   }, [hash, options]);
 
   return options;

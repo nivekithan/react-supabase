@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Cache } from "./cache";
+import { DbCache } from "./dbCache";
 import { useDbOptions, useSupabase } from "./context";
 import { DbContext } from "./db";
 import { getHash } from "./hash";
@@ -54,11 +54,10 @@ export function useDb<data, props>(db: DbContext<data, props>, args: props): DbR
 export function useDb<data, props>(db: DbContext<data, props>, args?: props): DbResult<data> {
   const supabase = useSupabase();
 
-  const getSupabaseBuild = useCallback(() => db.createUrl(supabase, args as props), [
-    args,
-    db,
-    supabase,
-  ]);
+  const getSupabaseBuild = useCallback(
+    () => db.createUrl(supabase, args as props),
+    [args, db, supabase]
+  );
 
   const hashString = getHash(db, args as props);
   const finalOptions = useGetDbOptions(hashString, db.options);
@@ -68,15 +67,15 @@ export function useDb<data, props>(db: DbContext<data, props>, args?: props): Db
 
   const cache = useCallback(() => {
     try {
-      return Cache.getCache<data>(hashString);
+      return DbCache.getCache<data>(hashString);
     } catch (err) {
-      new Cache<data>(supabase, getSupabaseBuild, hashString, finalOptions, configOptions);
-      return Cache.getCache<data>(hashString);
+      new DbCache<data>(supabase, getSupabaseBuild, hashString, finalOptions, configOptions);
+      return DbCache.getCache<data>(hashString);
     }
   }, [hashString, supabase, getSupabaseBuild, finalOptions, configOptions]);
 
   const [result, setResult] = useState<DbResult<data>>(cache);
-  const sync = new Sync(Cache.cache[hashString].__sync);
+  const sync = new Sync(DbCache.cache[hashString].__sync);
 
   useEffect(() => {
     let isMounted = true;
@@ -84,11 +83,11 @@ export function useDb<data, props>(db: DbContext<data, props>, args?: props): Db
     const { shouldComponentUpdate } = finalOptions;
 
     // Main subscriptions
-    const mainUnSubscribe = Cache.subscribe<data>(
+    const mainUnSubscribe = DbCache.subscribe<data>(
       hashString,
       (cache, force) => {
         if (isMounted) {
-          sync.current = Cache.cache[hashString].__sync;
+          sync.current = DbCache.cache[hashString].__sync;
 
           if (force) {
             setResult(cache);
@@ -118,10 +117,10 @@ export function useDb<data, props>(db: DbContext<data, props>, args?: props): Db
    */
 
   useEffect(() => {
-    const cache = Cache.getCache<data>(hashString);
+    const cache = DbCache.getCache<data>(hashString);
 
     if (cache.state === "STALE") {
-      Cache.cache[hashString].fetch(false);
+      DbCache.cache[hashString].fetch(false);
     }
   }, [hashString]);
 

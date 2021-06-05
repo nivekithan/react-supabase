@@ -1,4 +1,4 @@
-import { Cache } from "./cache";
+import { DbCache } from "./dbCache";
 import { useDbOptions, useSupabase } from "./context";
 import { DbContext } from "./db";
 import { getHash } from "./hash";
@@ -22,10 +22,10 @@ export const usePreFetch: usePreFetchHook = <data, props>(
     return db.createUrl(supabase, args as props);
   };
 
-  if (!Cache.cache[hash]) {
-    new Cache(supabase, getSupabaseBuild, hash, finalOptions, contextOptions);
+  if (!DbCache.cache[hash]) {
+    new DbCache(supabase, getSupabaseBuild, hash, finalOptions, contextOptions);
   }
 
-  Cache.cache[hash].fetch();
-  Cache.cache[hash].refetch();
+  DbCache.cache[hash].fetch();
+  DbCache.cache[hash].refetch();
 };

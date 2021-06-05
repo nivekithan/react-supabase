@@ -3,7 +3,7 @@
  */
 
 import { act, Renderer, renderHook, Result } from "@nivekithan/react-hooks";
-import { createSimpleState } from "@src/react-supabase/cache";
+import { createSimpleState } from "@src/react-supabase/dbCache";
 import { useUser, useAuthUser } from "@src/react-supabase/context";
 import { db } from "@src/react-supabase/db";
 import { DbResult, useDb } from "@src/react-supabase/useDb";

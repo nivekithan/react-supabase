@@ -1,5 +1,5 @@
 import { SupabaseClient } from "@src/supabase-js/SupabaseClient";
-import { Cache } from "./cache";
+import { DbCache } from "./dbCache";
 import { dbOptions } from "./context";
 import { DbContext } from "./db";
 import { getHash } from "./hash";
@@ -55,22 +55,22 @@ export const createGetter = (
       getterHash[hash] = {};
     }
 
-    if (!Cache.cache[localHash]) {
+    if (!DbCache.cache[localHash]) {
       const getSupabaseBuild = () => db.createUrl(supabase, args as props);
       const finalOptions = {
         ...defaultDbOptions,
         ...contextOptions,
         ...db.options,
       };
-      new Cache(supabase, getSupabaseBuild, localHash, finalOptions, contextOptions);
-      Cache.cache[localHash].fetch();
-      Cache.cache[localHash].refetch();
+      new DbCache(supabase, getSupabaseBuild, localHash, finalOptions, contextOptions);
+      DbCache.cache[localHash].fetch();
+      DbCache.cache[localHash].refetch();
     }
-    const unSubscribe = Cache.subscribe<data>(
+    const unSubscribe = DbCache.subscribe<data>(
       localHash,
       (cache) => {
-        if (Cache.cache[hash] && options.shouldReCalculate(cache)) {
-          Cache.cache[hash].reCalculateSupabaseBuild();
+        if (DbCache.cache[hash] && options.shouldReCalculate(cache)) {
+          DbCache.cache[hash].reCalculateSupabaseBuild();
         }
       },
       () => {
@@ -79,7 +79,7 @@ export const createGetter = (
       { unique: hash }
     );
     getterHash[hash][localHash] = unSubscribe;
-    return Cache.getCache(localHash);
+    return DbCache.getCache(localHash);
   };
 
   return get;

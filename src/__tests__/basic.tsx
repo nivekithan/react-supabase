@@ -7,7 +7,7 @@ import { DbResult, useDb } from "@src/react-supabase/useDb";
 import { Renderer, renderHook, Result } from "@nivekithan/react-hooks";
 import React from "react";
 import { Wrapper, successResult, errorResult, errorClient, successClient } from "./utils";
-import { Cache, createSimpleState } from "@src/react-supabase/cache";
+import { DbCache, createSimpleState } from "@src/react-supabase/dbCache";
 import { SupabaseBuild } from "@src/react-supabase/types";
 
 describe("Flow of requests", () => {
@@ -91,7 +91,7 @@ describe("Flow of requests", () => {
 describe("Testing basic functionality of Cache class", () => {
   test("Passing unknown hash to Cache.setCache should throw error", () => {
     const hash = "123444";
-    expect(() => Cache.setCache(hash, createSimpleState(hash, "STALE"))).toThrowError(
+    expect(() => DbCache.setCache(hash, createSimpleState(hash, "STALE"))).toThrowError(
       Error(
         `Cache.setCache: There is no cache with hash ${hash} use new Cache() to create new Cache`
       )
@@ -101,7 +101,7 @@ describe("Testing basic functionality of Cache class", () => {
   test("Passing unknown hash to Cache.subscribe should throw error", () => {
     const hash = "12344";
     expect(() =>
-      Cache.subscribe(
+      DbCache.subscribe(
         hash,
         () => {
           return;
@@ -135,9 +135,9 @@ describe("Testing basic functionality of Cache class", () => {
       stopRefetchTimeout: 2000 * 60,
       resetCacheOnAuthChange: true,
     };
-    new Cache(successClient, () => supabase, hash, options, {});
+    new DbCache(successClient, () => supabase, hash, options, {});
 
-    expect(() => new Cache(successClient, () => supabase, hash, options, {})).toThrowError(
+    expect(() => new DbCache(successClient, () => supabase, hash, options, {})).toThrowError(
       Error(
         `new Cache: There is already a cache with hash ${hash} use Cache.clearCache to remove it before creating a new one`
       )
@@ -147,7 +147,7 @@ describe("Testing basic functionality of Cache class", () => {
   test("Getting option of unknown cache should throw error", () => {
     const hash = "124545";
 
-    expect(() => Cache.getOptions(hash, "backgroundFetch")).toThrowError(
+    expect(() => DbCache.getOptions(hash, "backgroundFetch")).toThrowError(
       Error(
         `Cache.getOptions: There is no cache with hash ${hash} use new Cache() to create new cache`
       )
@@ -156,7 +156,7 @@ describe("Testing basic functionality of Cache class", () => {
   test("Passing unknown hash to Cache.getCache should throw error", () => {
     const hash = "12345";
 
-    expect(() => Cache.getCache(hash)).toThrowError(
+    expect(() => DbCache.getCache(hash)).toThrowError(
       Error(
         `Cache.getCache: There is no cache with hash ${hash} use new Cache() to create new Cache`
       )
@@ -166,7 +166,7 @@ describe("Testing basic functionality of Cache class", () => {
   test("Passing unknown hash to Cache.setOptions should throw error", () => {
     const hash = "12345";
 
-    expect(() => Cache.setOptions(hash, { cacheTime: 3000 })).toThrowError(
+    expect(() => DbCache.setOptions(hash, { cacheTime: 3000 })).toThrowError(
       Error(
         `Cache.setOptions: There is no cache with hash ${hash} use new Cache() to create new cache`
       )
