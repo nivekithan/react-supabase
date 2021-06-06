@@ -2,9 +2,9 @@
  * @jest-environment jsdom
  */
 
-import { Renderer, renderHook, Result } from "@nivekithan/react-hooks";
+import { renderHook } from "@testing-library/react-hooks";
 import { db } from "@src/react-supabase/db";
-import { DbResult, useDb } from "@src/react-supabase/useDb";
+import { useDb } from "@src/react-supabase/useDb";
 import React from "react";
 import { errorClient, Wrapper } from "./utils";
 
@@ -34,7 +34,7 @@ describe("Testing Getter", () => {
       wrapper: ({ children }) => {
         return <Wrapper client={errorClient}>{children}</Wrapper>;
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await new Promise((r) => setTimeout(r, 2000));
 

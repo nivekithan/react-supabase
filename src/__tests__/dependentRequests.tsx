@@ -2,10 +2,11 @@
  * @jest-environment jsdom
  */
 
-import { Renderer, renderHook, Result } from "@nivekithan/react-hooks";
+import { renderHook } from "@testing-library/react-hooks";
 import { db } from "@src/react-supabase/db";
 import { DbResult, useDb } from "@src/react-supabase/useDb";
-import React from "react";
+import { act, render, waitFor } from "@testing-library/react";
+import React, { useState } from "react";
 import {
   Wrapper,
   setDynamicResult,
@@ -18,10 +19,8 @@ import {
 
 describe("Dependent Requests", () => {
   test("Success: Dependent cache has already been created", async () => {
-    type serverResult = [{ id: string; name: string }];
-
     const dbAtom = db<serverResult, string>((supabase, name) => {
-      return supabase.from("users").select("*").eq("userName", name);
+      return supabase.from("test").select("*").eq("name", name);
     });
 
     const depAtom = db<serverResult, string>((supabase, name) => (get, hash) => {
@@ -37,47 +36,86 @@ describe("Dependent Requests", () => {
 
         const depName = data[0].name;
 
-        return supabase.from("users").select("*").eq("userName", depName);
+        return supabase.from("test").select("*").eq("name", depName);
       }
     });
     const name = "Nivekithan S";
-    const [result, resultDep] = renderHook(
-      [() => useDb(dbAtom, name), () => useDb(depAtom, name)],
-      {
-        dontMount: true,
-        // eslint-disable-next-line react/prop-types, react/display-name
-        wrapper: ({ children }) => {
-          return <Wrapper client={dynamicSuccessClient}>{children}</Wrapper>;
-        },
-      }
-    ) as [
-      Result<unknown, DbResult<serverResult>, Renderer<unknown>>,
-      Result<unknown, DbResult<serverResult>, Renderer<unknown>>
-    ];
+
+    type serverResult = [{ id: string; name: string }];
+
+    const wrapperComponent = {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      setRenderFirst(_render: boolean) {
+        // NOTHING
+      },
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      setRenderSecond(_render: boolean) {
+        // NOTHING
+      },
+    };
+
+    const WrapperComponent = () => {
+      const [renderFirst, setRenderFirst] = useState(false);
+      const [renderSecond, setRenderSecond] = useState(false);
+
+      wrapperComponent.setRenderFirst = setRenderFirst;
+      wrapperComponent.setRenderSecond = setRenderSecond;
+
+      return (
+        <Wrapper client={dynamicSuccessClient}>
+          {renderFirst ? <TestComponent /> : null}
+          {renderSecond ? <TestComponentDep /> : null}
+        </Wrapper>
+      );
+    };
+
+    const testComponent: DbResult<serverResult>[] = [];
+
+    const TestComponent = () => {
+      const result = useDb(dbAtom, name);
+      testComponent.push(result);
+
+      return <div></div>;
+    };
+    const testComponentDep: DbResult<serverResult>[] = [];
+
+    const TestComponentDep = () => {
+      const result = useDb(depAtom, name);
+      testComponentDep.push(result);
+      return <div></div>;
+    };
+
+    render(<WrapperComponent />);
 
     setDynamicResult([{ id: 1, name }]);
-    result.render();
 
-    await result.waitFor(() => {
-      return result.result.current.state === "SUCCESS";
+    act(() => {
+      wrapperComponent.setRenderFirst(true);
     });
+
+    await waitFor(() => {
+      return expect(testComponent[testComponent.length - 1].state).toBe("SUCCESS");
+    });
+
     setDynamicResult([{ id: 2, name }]);
-    resultDep.render();
 
-    await resultDep.waitFor(() => {
-      return resultDep.result.current.state === "SUCCESS";
+    act(() => {
+      wrapperComponent.setRenderSecond(true);
     });
 
-    const { result: depResult } = resultDep;
+    await waitFor(() => {
+      return expect(testComponentDep[testComponentDep.length - 1].state).toBe("SUCCESS");
+    });
 
-    expect(depResult.current.data).toEqual([{ id: 2, name }]);
+    const depResult = testComponentDep[testComponentDep.length - 1];
+
+    expect(depResult.data).toEqual([{ id: 2, name }]);
   });
 
   test("Success: Dependent Cache has not been created", async () => {
-    type serverResult = [{ id: string; name: string }];
-
     const dbAtom = db<serverResult, string>((supabase, name) => {
-      return supabase.from("users").select("*").eq("userName", name);
+      return supabase.from("test").select("*").eq("name", name);
     });
 
     const depAtom = db<serverResult, string>((supabase, name) => (get, hash) => {
@@ -93,40 +131,86 @@ describe("Dependent Requests", () => {
 
         const depName = data[0].name;
 
-        return supabase.from("users").select("*").eq("userName", depName);
+        return supabase.from("test").select("*").eq("name", depName);
       }
     });
     const name = "Nivekithan S";
-    const [resultNon, { render, result, waitFor }] = renderHook(
-      [() => useDb(dbAtom, name), () => useDb(depAtom, name)],
-      {
-        dontMount: true,
-        // eslint-disable-next-line react/prop-types, react/display-name
-        wrapper: ({ children }) => {
-          return <Wrapper client={dynamicSuccessClient}>{children}</Wrapper>;
-        },
-      }
-    ) as [
-      Result<unknown, DbResult<serverResult>, Renderer<unknown>>,
-      Result<unknown, DbResult<serverResult>, Renderer<unknown>>
-    ];
+
+    type serverResult = [{ id: string; name: string }];
+
+    const wrapperComponent = {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      setRenderFirst(_render: boolean) {
+        // NOTHING
+      },
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      setRenderSecond(_render: boolean) {
+        // NOTHING
+      },
+    };
+
+    const WrapperComponent = () => {
+      const [renderFirst, setRenderFirst] = useState(false);
+      const [renderSecond, setRenderSecond] = useState(false);
+
+      wrapperComponent.setRenderFirst = setRenderFirst;
+      wrapperComponent.setRenderSecond = setRenderSecond;
+
+      return (
+        <Wrapper client={dynamicSuccessClient}>
+          {renderFirst ? <TestComponent /> : null}
+          {renderSecond ? <TestComponentDep /> : null}
+        </Wrapper>
+      );
+    };
+
+    const testComponent: DbResult<serverResult>[] = [];
+
+    const TestComponent = () => {
+      const result = useDb(dbAtom, name);
+      testComponent.push(result);
+
+      return <div></div>;
+    };
+    const testComponentDep: DbResult<serverResult>[] = [];
+
+    const TestComponentDep = () => {
+      const result = useDb(depAtom, name);
+      testComponentDep.push(result);
+      return <div></div>;
+    };
+
+    render(<WrapperComponent />);
 
     setDynamicResult([{ id: 1, name }]);
-    render();
+    act(() => {
+      wrapperComponent.setRenderSecond(true);
+    });
+
+    const currentResDep = () => {
+      return testComponentDep[testComponentDep.length - 1];
+    };
 
     await waitFor(
       () => {
-        return result.current.state === "SUCCESS";
+        return expect(currentResDep().state).toBe("SUCCESS");
       },
       { timeout: 3000 }
     );
 
-    expect(result.current.data).toEqual([{ id: 1, name }]);
+    expect(currentResDep().data).toEqual([{ id: 1, name }]);
 
-    resultNon.render();
+    act(() => {
+      wrapperComponent.setRenderFirst(true);
+    });
 
-    expect(resultNon.result.current.state).toBe("SUCCESS");
-    expect(resultNon.result.current.data).toEqual([{ id: 1, name }]);
+    const currentRes = () => {
+      return testComponent[testComponent.length - 1];
+    };
+
+    expect(currentRes().state).toBe("SUCCESS");
+    expect(currentRes().data).toEqual([{ id: 1, name }]);
 
     expect(ServerData.times).toBe(2);
   });
@@ -181,7 +265,7 @@ describe("Dependent Requests", () => {
       wrapper: ({ children }) => {
         return <Wrapper client={dynamicSuccessClient}>{children}</Wrapper>;
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -229,7 +313,7 @@ describe("Dependent Requests", () => {
       wrapper: ({ children }) => {
         return <Wrapper client={errorToSuccessClient}>{children}</Wrapper>;
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await waitFor(
       () => {
@@ -261,25 +345,73 @@ describe("Dependent Requests", () => {
       };
     });
 
-    const [result1, result2] = renderHook([() => useDb(dbAtom), () => useDb(depAtom)], {
-      // eslint-disable-next-line react/prop-types, react/display-name
-      wrapper: ({ children }) => {
-        return <Wrapper client={successClient}>{children}</Wrapper>;
+    const wrapperComponent = {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      setRenderFirst(_render: boolean) {
+        // NOTHING
       },
-      dontMount: true,
-    }) as [
-      Result<unknown, DbResult<unknown>, Renderer<unknown>>,
-      Result<unknown, DbResult<unknown>, Renderer<unknown>>
-    ];
 
-    result1.render();
-    await result1.waitFor(() => {
-      return result1.result.current.state === "SUCCESS";
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      setRenderSecond(_render: boolean) {
+        // NOTHING
+      },
+    };
+
+    const WrapperComponent = () => {
+      const [renderFirst, setRenderFirst] = useState(false);
+      const [renderSecond, setRenderSecond] = useState(false);
+
+      wrapperComponent.setRenderFirst = setRenderFirst;
+      wrapperComponent.setRenderSecond = setRenderSecond;
+
+      return (
+        <Wrapper client={dynamicSuccessClient}>
+          {renderFirst ? <TestComponent /> : null}
+          {renderSecond ? <TestComponentDep /> : null}
+        </Wrapper>
+      );
+    };
+
+    const testComponent: DbResult<unknown>[] = [];
+
+    const TestComponent = () => {
+      const result = useDb(dbAtom);
+      testComponent.push(result);
+
+      return <div></div>;
+    };
+    const testComponentDep: DbResult<unknown>[] = [];
+
+    const TestComponentDep = () => {
+      const result = useDb(depAtom);
+      testComponentDep.push(result);
+      return <div></div>;
+    };
+
+    render(<WrapperComponent />);
+
+    act(() => {
+      wrapperComponent.setRenderFirst(true);
     });
 
-    result2.render();
-    await result2.waitFor(() => {
-      return result2.result.current.state === "SUCCESS";
+    const currRes = () => {
+      return testComponent[testComponent.length - 1];
+    };
+
+    const currResDep = () => {
+      return testComponentDep[testComponentDep.length - 1];
+    };
+
+    await waitFor(() => {
+      return currRes().state === "SUCCESS";
+    });
+
+    act(() => {
+      wrapperComponent.setRenderSecond(true);
+    });
+
+    await waitFor(() => {
+      return currResDep().state === "SUCCESS";
     });
   });
 
@@ -297,7 +429,7 @@ describe("Dependent Requests", () => {
       wrapper: ({ children }) => {
         return <Wrapper client={successClient}>{children}</Wrapper>;
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";

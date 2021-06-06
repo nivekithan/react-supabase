@@ -2,10 +2,10 @@
  * @jest-environment jsdom
  */
 
-import { Renderer, renderHook, Result } from "@nivekithan/react-hooks";
+import { renderHook } from "@testing-library/react-hooks";
 import { ClientProvider } from "@src/react-supabase/context";
 import { db } from "@src/react-supabase/db";
-import { DbResult, useDb } from "@src/react-supabase/useDb";
+import { useDb } from "@src/react-supabase/useDb";
 import React from "react";
 import { successClient } from "./utils";
 
@@ -16,7 +16,7 @@ describe("Using hooks outside the SupabaseProvider tree or its equivalent tree s
     });
     const { result } = renderHook(() => {
       return useDb(dbAtom);
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     expect(result.error).toEqual(new Error("use useSupabase inside the ClientProvider tree"));
   });
@@ -36,7 +36,7 @@ describe("Using hooks outside the SupabaseProvider tree or its equivalent tree s
           return <ClientProvider client={successClient}>{children}</ClientProvider>;
         },
       }
-    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    );
 
     expect(result.error).toEqual(Error("use useDbOptions inside the DbOptionsProvider tree"));
   });

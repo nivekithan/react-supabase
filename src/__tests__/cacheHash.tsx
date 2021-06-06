@@ -3,11 +3,11 @@
  */
 
 import { db } from "@src/react-supabase/db";
-import { Renderer, renderHook, Result } from "@nivekithan/react-hooks";
+import { renderHook } from "@testing-library/react-hooks";
 import React from "react";
 import { Wrapper, ServerData, errorClient, successClient } from "./utils";
 import { setHashFunction } from "@src/react-supabase/hash";
-import { DbResult, useDb } from "@src/react-supabase/useDb";
+import { useDb } from "@src/react-supabase/useDb";
 
 describe("Feature: Cache Hash", () => {
   test("If props contains non JSON-serializable value, then hash should throw error", async () => {
@@ -29,7 +29,7 @@ describe("Feature: Cache Hash", () => {
           );
         },
       }
-    ) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    );
 
     expect(result.error).toEqual(
       Error("Cannot serialize non JSON value, use setHashFunction to override default function")
@@ -56,11 +56,7 @@ describe("Feature: Cache Hash", () => {
           );
         },
       }
-    ) as Result<
-      unknown,
-      { first: DbResult<unknown>; second: DbResult<unknown> },
-      Renderer<unknown>
-    >;
+    );
 
     await waitFor(() => {
       return result.current.first.state === "SUCCESS" && result.current.second.state === "SUCCESS";
@@ -88,14 +84,7 @@ describe("Feature: Cache Hash", () => {
           );
         },
       }
-    ) as Result<
-      unknown,
-      {
-        first: DbResult<unknown>;
-        second: DbResult<unknown>;
-      },
-      Renderer<unknown>
-    >;
+    );
 
     await waitFor(() => {
       return result.current.first.state === "ERROR" && result.current.second.state === "ERROR";
@@ -123,11 +112,7 @@ describe("Feature: Cache Hash", () => {
           );
         },
       }
-    ) as Result<
-      unknown,
-      { first: DbResult<unknown>; second: DbResult<unknown> },
-      Renderer<unknown>
-    >;
+    );
 
     await waitFor(() => {
       return result.current.first.state === "SUCCESS" && result.current.second.state === "SUCCESS";
@@ -154,11 +139,7 @@ describe("Feature: Cache Hash", () => {
           );
         },
       }
-    ) as Result<
-      unknown,
-      { first: DbResult<unknown>; second: DbResult<unknown> },
-      Renderer<unknown>
-    >;
+    );
 
     await waitFor(() => {
       return result.current.first.state === "ERROR" && result.current.second.state === "ERROR";
@@ -191,11 +172,7 @@ describe("Feature: Cache Hash", () => {
           );
         },
       }
-    ) as Result<
-      unknown,
-      { first: DbResult<unknown>; second: DbResult<unknown> },
-      Renderer<unknown>
-    >;
+    );
 
     await waitFor(() => {
       return result.current.first.state === "SUCCESS" && result.current.second.state === "SUCCESS";
@@ -229,11 +206,7 @@ describe("Feature: Cache Hash", () => {
           );
         },
       }
-    ) as Result<
-      unknown,
-      { first: DbResult<unknown>; second: DbResult<unknown> },
-      Renderer<unknown>
-    >;
+    );
 
     await waitFor(() => {
       return result.current.first.state === "ERROR" && result.current.second.state === "ERROR";
@@ -274,11 +247,7 @@ describe("Feature: Override default Hash function", () => {
           );
         },
       }
-    ) as Result<
-      unknown,
-      { first: DbResult<unknown>; second: DbResult<unknown> },
-      Renderer<unknown>
-    >;
+    );
 
     expect(result.current.first.hash).toBe(result.current.second.hash);
   });
@@ -312,11 +281,7 @@ describe("Feature: Override default Hash function", () => {
           );
         },
       }
-    ) as Result<
-      unknown,
-      { first: DbResult<unknown>; second: DbResult<unknown> },
-      Renderer<unknown>
-    >;
+    );
 
     expect(result.current.first.hash).toBe(result.current.second.hash);
   });

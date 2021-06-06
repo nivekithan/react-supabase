@@ -2,11 +2,11 @@
  * @jest-environment jsdom
  */
 
-import { act, Renderer, renderHook, Result } from "@nivekithan/react-hooks";
+import { act, renderHook } from "@testing-library/react-hooks";
 import { createSimpleState } from "@src/react-supabase/dbCache";
 import { useUser, useAuthUser } from "@src/react-supabase/context";
 import { db } from "@src/react-supabase/db";
-import { DbResult, useDb } from "@src/react-supabase/useDb";
+import { useDb } from "@src/react-supabase/useDb";
 import { User } from "@src/supabase-js";
 import React from "react";
 import { errorClient, successClient, Wrapper } from "./utils";
@@ -28,7 +28,7 @@ import { ServerData } from "./utils/server";
 
 describe("Testing authorization", () => {
   test("useUser should throw error when used outside the context tree", async () => {
-    const result = renderHook(() => useUser()) as Result<unknown, User | null, Renderer<unknown>>;
+    const result = renderHook(() => useUser());
 
     expect(result.result.error).toEqual(Error("use useUser inside SupabaseProvider tree"));
   });
@@ -43,7 +43,7 @@ describe("Testing authorization", () => {
           </Wrapper>
         );
       },
-    }) as Result<unknown, User | null, Renderer<unknown>>;
+    });
 
     expect(result.result.current).toBeNull();
   });
@@ -63,7 +63,7 @@ describe("Testing authorization", () => {
           </Wrapper>
         );
       },
-    }) as Result<unknown, User | null, Renderer<unknown>>;
+    });
 
     expect(result.result.current).not.toBeNull();
   });
@@ -83,7 +83,7 @@ describe("Testing authorization", () => {
           </Wrapper>
         );
       },
-    }) as Result<unknown, User | null, Renderer<unknown>>;
+    });
 
     expect(result.result.current).toBeNull();
   });
@@ -103,7 +103,7 @@ describe("Testing authorization", () => {
           </Wrapper>
         );
       },
-    }) as Result<unknown, User | null, Renderer<unknown>>;
+    });
 
     expect(result.result.current).not.toBeNull();
     await act(async () => {
@@ -123,7 +123,7 @@ describe("Testing authorization", () => {
           </Wrapper>
         );
       },
-    }) as Result<unknown, User, Renderer<unknown>>;
+    });
 
     expect(result.result.error).toEqual(Error("The user is not authenticated"));
   });
@@ -143,7 +143,7 @@ describe("Testing authorization", () => {
           </Wrapper>
         );
       },
-    }) as Result<unknown, User | null, Renderer<unknown>>;
+    });
 
     expect(result.result.current).not.toBeNull();
   });
@@ -163,7 +163,7 @@ describe("Testing authorization", () => {
           </Wrapper>
         );
       },
-    }) as Result<unknown, User | null, Renderer<unknown>>;
+    });
 
     expect(result.result.error).toEqual(Error("The user is not authenticated"));
   });
@@ -187,7 +187,7 @@ describe("Testing authorization", () => {
           </Wrapper>
         );
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -238,7 +238,7 @@ describe("Testing authorization", () => {
           </Wrapper>
         );
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -283,7 +283,7 @@ describe("Testing authorization", () => {
           </Wrapper>
         );
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -323,7 +323,7 @@ describe("Testing authorization", () => {
           </Wrapper>
         );
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -363,7 +363,7 @@ describe("Testing authorization", () => {
           </Wrapper>
         );
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -422,7 +422,7 @@ describe("Testing authorization", () => {
           </Wrapper>
         );
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -477,7 +477,7 @@ describe("Testing authorization", () => {
           </Wrapper>
         );
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -532,7 +532,7 @@ describe("Testing authorization", () => {
           </Wrapper>
         );
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";

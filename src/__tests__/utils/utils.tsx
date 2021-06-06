@@ -6,7 +6,7 @@ import {
   SupabaseProvider,
 } from "@src/react-supabase/context";
 import { WrapperComponent } from "@nivekithan/react-hooks";
-import React, { createContext } from "react";
+import React from "react";
 
 export const KEY = "1234567890-test-key";
 export const url = {

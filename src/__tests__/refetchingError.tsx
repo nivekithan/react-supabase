@@ -3,8 +3,8 @@
  */
 
 import { db } from "@src/react-supabase/db";
-import { DbResult, useDb } from "@src/react-supabase/useDb";
-import { Renderer, renderHook, Result } from "@nivekithan/react-hooks";
+import { useDb } from "@src/react-supabase/useDb";
+import { renderHook } from "@testing-library/react-hooks";
 import React from "react";
 import { Wrapper, ServerData, setSuccessOnTime, errorToSuccessClient } from "./utils";
 
@@ -21,7 +21,7 @@ describe("Feature: Refetching error request", () => {
       wrapper: ({ children }) => {
         return <Wrapper client={errorToSuccessClient}>{children}</Wrapper>;
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -42,7 +42,7 @@ describe("Feature: Refetching error request", () => {
       wrapper: ({ children }) => {
         return <Wrapper client={errorToSuccessClient}>{children}</Wrapper>;
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -63,7 +63,7 @@ describe("Feature: Refetching error request", () => {
       wrapper: ({ children }) => {
         return <Wrapper client={errorToSuccessClient}>{children}</Wrapper>;
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await waitFor(() => {
       return result.current.state === "SUCCESS";
@@ -82,7 +82,7 @@ describe("Feature: Refetching error request", () => {
       wrapper: ({ children }) => {
         return <Wrapper client={errorToSuccessClient}>{children}</Wrapper>;
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await waitFor(() => {
       return result.current.state === "ERROR";

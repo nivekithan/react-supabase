@@ -3,8 +3,8 @@
  */
 
 import { db } from "@src/react-supabase/db";
-import { DbResult, useDb } from "@src/react-supabase/useDb";
-import { Renderer, renderHook, Result } from "@nivekithan/react-hooks";
+import { useDb } from "@src/react-supabase/useDb";
+import { renderHook } from "@testing-library/react-hooks";
 import React from "react";
 import { Wrapper, successResult, errorResult, errorClient, successClient } from "./utils";
 import { DbCache, createSimpleState } from "@src/react-supabase/dbCache";
@@ -25,7 +25,7 @@ describe("Flow of requests", () => {
           </Wrapper>
         );
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await waitForNextUpdate();
 
@@ -62,7 +62,7 @@ describe("Flow of requests", () => {
           </Wrapper>
         );
       },
-    }) as Result<unknown, DbResult<unknown>, Renderer<unknown>>;
+    });
 
     await waitForNextUpdate();
 

@@ -1,10 +1,10 @@
 lockfileVersion: 5.3
 
 specifiers:
-  '@nivekithan/react-hooks': ^2.0.0
   '@supabase/gotrue-js': ^1.15.1
   '@supabase/postgrest-js': ^0.29.0
   '@testing-library/react': ^11.2.7
+  '@testing-library/react-hooks': ^7.0.0
   '@types/jest': ^26.0.22
   '@types/node': ^14.14.41
   '@types/react': ^17.0.0
@@ -34,8 +34,8 @@ dependencies:
   react-dom: 17.0.2_react@17.0.2
 
 devDependencies:
-  '@nivekithan/react-hooks': 2.0.0_react-dom@17.0.2+react@17.0.2
   '@testing-library/react': 11.2.7_react-dom@17.0.2+react@17.0.2
+  '@testing-library/react-hooks': 7.0.0_react-dom@17.0.2+react@17.0.2
   '@types/jest': 26.0.23
   '@types/node': 14.17.0
   '@types/react': 17.0.6
@@ -643,28 +643,6 @@ packages:
       - supports-color
     dev: true
 
-  /@nivekithan/react-hooks/2.0.0_react-dom@17.0.2+react@17.0.2:
-    resolution: {integrity: sha512-zcr26mKPGDpGsT7mDgYFeXgMWjyHSh07ZxF1Mv9uHJ1rdrp+cWfwUkvSpOR8S5aucIi2ANQF2S8ppmxnmf5UfQ==}
-    peerDependencies:
-      react: '>=16.9.0'
-      react-dom: '>=16.9.0'
-      react-test-renderer: '>=16.9.0'
-    peerDependenciesMeta:
-      react-dom:
-        optional: true
-      react-test-renderer:
-        optional: true
-    dependencies:
-      '@babel/runtime': 7.14.0
-      '@types/react': 17.0.6
-      '@types/react-dom': 17.0.5
-      '@types/react-test-renderer': 17.0.1
-      filter-console: 0.1.1
-      react: 17.0.2
-      react-dom: 17.0.2_react@17.0.2
-      react-error-boundary: 3.1.3_react@17.0.2
-    dev: true
-
   /@nodelib/fs.scandir/2.1.4:
     resolution: {integrity: sha512-33g3pMJk3bg5nXbL/+CY6I2eJDzZAni49PfJnL5fghPTggPvBd/pFNSgJsdAgWptuFu7qq/ERvOYFlhvsLTCKA==}
     engines: {node: '>= 8'}
@@ -726,6 +704,28 @@ packages:
       dom-accessibility-api: 0.5.6
       lz-string: 1.4.4
       pretty-format: 26.6.2
+    dev: true
+
+  /@testing-library/react-hooks/7.0.0_react-dom@17.0.2+react@17.0.2:
+    resolution: {integrity: sha512-WFBGH8DWdIGGBHt6PBtQPe2v4Kbj9vQ1sQ9qLBTmwn1PNggngint4MTE/IiWCYhPbyTW3oc/7X62DObMn/AjQQ==}
+    engines: {node: '>=12'}
+    peerDependencies:
+      react: '>=16.9.0'
+      react-dom: '>=16.9.0'
+      react-test-renderer: '>=16.9.0'
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
+      react-test-renderer:
+        optional: true
+    dependencies:
+      '@babel/runtime': 7.14.0
+      '@types/react': 17.0.9
+      '@types/react-dom': 17.0.6
+      '@types/react-test-renderer': 17.0.1
+      react: 17.0.2
+      react-dom: 17.0.2_react@17.0.2
+      react-error-boundary: 3.1.3_react@17.0.2
     dev: true
 
   /@testing-library/react/11.2.7_react-dom@17.0.2+react@17.0.2:
@@ -848,6 +848,12 @@ packages:
       '@types/react': 17.0.6
     dev: true
 
+  /@types/react-dom/17.0.6:
+    resolution: {integrity: sha512-MGTI+TudxAnGTj8aco8mogaPSJGK2Whje7OZh1CxNLRyhJpTZg/pGQpIbCT0eCVFQyH7UFpdvCqQEThHIp/gsA==}
+    dependencies:
+      '@types/react': 17.0.9
+    dev: true
+
   /@types/react-test-renderer/17.0.1:
     resolution: {integrity: sha512-3Fi2O6Zzq/f3QR9dRnlnHso9bMl7weKCviFmfF6B4LS1Uat6Hkm15k0ZAQuDz+UBq6B3+g+NM6IT2nr5QgPzCw==}
     dependencies:
@@ -856,6 +862,14 @@ packages:
 
   /@types/react/17.0.6:
     resolution: {integrity: sha512-u/TtPoF/hrvb63LdukET6ncaplYsvCvmkceasx8oG84/ZCsoLxz9Z/raPBP4lTAiWW1Jb889Y9svHmv8R26dWw==}
+    dependencies:
+      '@types/prop-types': 15.7.3
+      '@types/scheduler': 0.16.1
+      csstype: 3.0.8
+    dev: true
+
+  /@types/react/17.0.9:
+    resolution: {integrity: sha512-2Cw7FvevpJxQrCb+k5t6GH1KIvmadj5uBbjPaLlJB/nZWUj56e1ZqcD6zsoMFB47MsJUTFl9RJ132A7hb3QFJA==}
     dependencies:
       '@types/prop-types': 15.7.3
       '@types/scheduler': 0.16.1
@@ -2261,11 +2275,6 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       to-regex-range: 5.0.1
-    dev: true
-
-  /filter-console/0.1.1:
-    resolution: {integrity: sha512-zrXoV1Uaz52DqPs+qEwNJWJFAWZpYJ47UNmpN9q4j+/EYsz85uV0DC9k8tRND5kYmoVzL0W+Y75q4Rg8sRJCdg==}
-    engines: {node: '>=8'}
     dev: true
 
   /find-up/4.1.0:

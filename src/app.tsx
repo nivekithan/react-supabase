@@ -4,32 +4,29 @@ import { useUser } from "./react-supabase/context";
 import { db } from "./react-supabase/db";
 import { useDb } from "./react-supabase/useDb";
 import { supabase } from "./supabase";
-const dbAtom = db<unknown, undefined>(
-  (supabase) => {
-    return supabase.from("todos").select("*").get();
-  },
-  {
-    resetCacheOnAuthChange: () => true,
+
+const dbAtom = db<{ name: string }[], string>((supabase, name) => {
+  return supabase.from("test").select("*").eq("name", name);
+});
+
+const depAtom = db<{ name: string }[], string>((supabase, name) => (get, hash) => {
+  const result = get(dbAtom, name);
+
+  if (result.state !== "SUCCESS") {
+    return {
+      ...result,
+      hash,
+    };
+  } else {
+    const { data } = result;
+
+    const depName = data[0].name;
+
+    return supabase.from("test").select("*").eq("name", depName);
   }
-);
-
-const depDbAtom = db<unknown, undefined>(
-  (supabase) => (get, hash) => {
-    const result = get(dbAtom);
-
-    if (result.state !== "SUCCESS") {
-      return createSimpleState(hash, "STALE");
-    }
-
-    return supabase.from("todos").select("*").get();
-  },
-  {
-    resetCacheOnAuthChange: () => true,
-  }
-);
+});
 export const App = () => {
-  // const { state, data } = useDb(userData, "users");
-  const state = "SUCCESS";
+  const { state } = useDb(dbAtom, "Nivekithan");
   const [showChildren, setShowChildren] = useState(false);
 
   const onClick = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -71,12 +68,8 @@ export const App = () => {
 };
 
 const Component = () => {
-  const result = useDb(depDbAtom);
-  const user = useUser();
-
-  const resultStr = JSON.stringify(result, null, 8);
+  const result = useDb(depAtom, "Nivekithan");
 
   console.log(result);
-  console.log(user);
-  return <div>{resultStr}</div>;
+  return <div>Child</div>;
 };
