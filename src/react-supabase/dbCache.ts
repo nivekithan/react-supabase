@@ -1,7 +1,7 @@
 import { SupabaseBuild } from "./types";
 import { DbResult } from "./useDb";
 import { dbOptions } from "./context";
-import { createGetter, Getter, getterHash } from "./getter";
+import { createGetter, Getter, removeGetterHash } from "./getter";
 import { SupabaseClient } from "@src/supabase-js/SupabaseClient";
 import { Subscription } from "@supabase/gotrue-js";
 import { PostgrestBuilder } from "@supabase/postgrest-js";
@@ -12,7 +12,6 @@ type AuthSubsObj = {
 };
 
 type DbCacheHash<data> = {
-  // Type of Cache
   __type: "STATIC" | "SERVER";
 
   // Every time there is change in result, The __sync will also change
@@ -221,11 +220,7 @@ export class DbCache<data> {
       const reCalculateSupabaseBuild = (fetch = true) => {
         const couldBeSupabaseBuild = createSupabaseBuild();
 
-        Object.values(getterHash[hash] || {}).map((unSubscribe) => {
-          unSubscribe();
-        });
-
-        delete getterHash[hash];
+        removeGetterHash(hash);
 
         if (typeof couldBeSupabaseBuild !== "function") {
           DbCache.cache[hash].supabaseBuild = couldBeSupabaseBuild;
@@ -637,10 +632,7 @@ const createCacheHash = (
         DbCache.cache[hash].clearCacheToken = undefined;
       }
 
-      Object.values(getterHash[hash] || {}).map((unSubs) => {
-        unSubs();
-      });
-      delete getterHash[hash];
+      removeGetterHash(hash);
 
       delete DbCache.cache[hash];
     },

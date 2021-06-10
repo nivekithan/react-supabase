@@ -37,6 +37,14 @@ export const getterHash: {
   };
 } = {};
 
+export const removeGetterHash = (hash: string) => {
+  Object.values(getterHash[hash] || {}).map((unSubscribe) => {
+    unSubscribe();
+  });
+
+  delete getterHash[hash];
+};
+
 export const createGetter = (
   supabase: SupabaseClient,
   hash: string,
