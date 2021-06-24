@@ -5,10 +5,11 @@ import { getHash } from "./hash";
 import { MutateContext } from "./mutate";
 import { MutationCache } from "./mutationCache";
 
-export type MutateResult<SetProps> = SetProps extends undefined
+export type MutateResultSet<SetProps> = SetProps extends undefined
   ? (setProps?: SetProps) => void
   : (setProps: SetProps) => void;
 
+export type MutateResult<SetProps> = MutateResultSet<SetProps>;
 export function useMutate<Data, HookProps extends undefined, SetProps>(
   mutateContext: MutateContext<Data, HookProps, SetProps>,
   hookProps?: HookProps
@@ -34,7 +35,7 @@ export function useMutate<Data, HookProps, SetProps>(
     );
   }
 
-  return MutationCache.cache[hash].callApi as MutateResult<SetProps>;
+  return MutationCache.cache[hash].callApi as MutateResultSet<SetProps>;
 }
 
 const createSetPropsFn = <Data, HookProps, SetProps>(
@@ -52,6 +53,9 @@ const createSetPropsFn = <Data, HookProps, SetProps>(
       MutationCache.setCache(hash, createSimpleState(hash, "LOADING"), { backgroundFetch });
       const response = await supabaseBuild;
 
+      const status = response.status;
+      const statusText = response.statusText;
+
       if (response.data) {
         MutationCache.setCache(
           hash,
@@ -59,8 +63,8 @@ const createSetPropsFn = <Data, HookProps, SetProps>(
             data: response.data,
             error: undefined,
             state: "SUCCESS",
-            status: response.status,
-            statusText: response.statusText,
+            status,
+            statusText,
             hash,
           },
           { backgroundFetch }
@@ -72,8 +76,8 @@ const createSetPropsFn = <Data, HookProps, SetProps>(
             state: "ERROR",
             data: undefined,
             error: response.error,
-            status: response.status,
-            statusText: response.statusText,
+            status,
+            statusText,
             hash,
           },
           { backgroundFetch }
